@@ -11,6 +11,16 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float minDistanceToPlayer = 3f;
     [SerializeField] private float maxDistanceToPlayer = 5f;
 
+    [Header("Enemy Separation")]
+    [SerializeField] private float separationRadius = 1.5f;
+    [SerializeField] private float separationStrength = 3.5f;
+    [SerializeField] private float veryCloseDistance = 0.75f;
+    [SerializeField] private float veryClosePushMultiplier = 2.5f;
+
+    [Header("Orbit Around Player")]
+    [SerializeField] private float orbitStrength = 0.75f;
+    [SerializeField] private bool orbitClockwise = true;
+
     [Header("Visual")]
     [SerializeField] private SpriteRenderer spriteRenderer;
 
@@ -45,6 +55,7 @@ public class Enemy : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        orbitClockwise = Random.value > 0.5f;
 
         if (player == null)
             Debug.LogError("Player is not assigned!", this);
@@ -88,18 +99,72 @@ public class Enemy : MonoBehaviour
         if (distanceToPlayer > 0.001f)
             aimDirection = toPlayer.normalized;
 
+        Vector2 distanceMove = Vector2.zero;
+
         if (distanceToPlayer > maxDistanceToPlayer)
         {
-            movement = aimDirection;
+            distanceMove = aimDirection;
         }
         else if (distanceToPlayer < minDistanceToPlayer)
         {
-            movement = -aimDirection;
+            distanceMove = -aimDirection;
         }
-        else
+
+        Vector2 separationMove = GetSeparationVector();
+        Vector2 orbitMove = GetOrbitVector(distanceToPlayer);
+
+        Vector2 finalMove = distanceMove + orbitMove + separationMove;
+
+        if (finalMove.sqrMagnitude > 1f)
+            finalMove.Normalize();
+
+        movement = finalMove;
+    }
+
+    private Vector2 GetSeparationVector()
+    {
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        Vector2 separation = Vector2.zero;
+
+        foreach (GameObject enemy in enemies)
         {
-            movement = Vector2.zero;
+            if (enemy == gameObject)
+                continue;
+
+            Vector2 offset = (Vector2)transform.position - (Vector2)enemy.transform.position;
+            float distance = offset.magnitude;
+
+            if (distance <= 0.001f)
+                continue;
+
+            if (distance < separationRadius)
+            {
+                float strength = 1f - (distance / separationRadius);
+                float push = separationStrength * strength;
+
+                if (distance < veryCloseDistance)
+                    push *= veryClosePushMultiplier;
+
+                separation += offset.normalized * push;
+            }
         }
+
+        return separation;
+    }
+
+    private Vector2 GetOrbitVector(float distanceToPlayer)
+    {
+        if (distanceToPlayer > maxDistanceToPlayer + 0.5f)
+            return Vector2.zero;
+
+        Vector2 tangent;
+
+        if (orbitClockwise)
+            tangent = new Vector2(-aimDirection.y, aimDirection.x);
+        else
+            tangent = new Vector2(aimDirection.y, -aimDirection.x);
+
+        return tangent * orbitStrength;
     }
 
     private void HandleFlip()
@@ -118,7 +183,7 @@ public class Enemy : MonoBehaviour
     {
         isFacingLeft = faceLeft;
 
-        // Спрайт врага по умолчанию смотрит ВЛЕВО
+        // Спрайт врага по умолчанию смотрит влево
         if (spriteRenderer != null)
             spriteRenderer.flipX = !faceLeft;
     }
@@ -153,8 +218,6 @@ public class Enemy : MonoBehaviour
             return;
 
         Vector2 weaponDirection = aimDirection.sqrMagnitude > 0.001f ? aimDirection.normalized : Vector2.left;
-
-        weaponTransform.position = (Vector2)transform.position + weaponDirection * weaponDistanceFromEnemy;
 
         float angle = Mathf.Atan2(weaponDirection.y, weaponDirection.x) * Mathf.Rad2Deg;
         weaponTransform.rotation = Quaternion.Euler(0f, 0f, angle);

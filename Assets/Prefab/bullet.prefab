@@ -102,8 +102,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   damage: 1
   lifeTime: 4
-  physicalCollider: {fileID: 7164471397360566013}
-  hitTrigger: {fileID: 7081232984002894818}
+  bulletSpriteRenderer: {fileID: 1942331179352816372}
 --- !u!58 &7164471397360566013
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -111,7 +110,7 @@ CircleCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 542556601557367836}
-  m_Enabled: 1
+  m_Enabled: 0
   m_Density: 1
   m_Material: {fileID: 6200000, guid: 859b6165a5de33e4cbb1fd6e0ce76587, type: 2}
   m_IncludeLayers:
