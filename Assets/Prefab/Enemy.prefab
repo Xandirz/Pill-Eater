@@ -218,7 +218,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 0}
-  moveSpeed: 3
+  moveSpeed: 1
   minDistanceToPlayer: 3
   maxDistanceToPlayer: 5
   separationRadius: 3

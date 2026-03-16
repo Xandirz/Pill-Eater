@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -18,15 +19,32 @@ public class Player : MonoBehaviour
     [Header("Walk Animation")]
     [SerializeField] private float walkAnimationSpeed = 0.15f;
 
+    [Header("Stats UI")]
+    [SerializeField] private TextMeshProUGUI statsText;
+    [SerializeField] private Health health;
+    [SerializeField] private WeaponController weaponController;
+
     private Rigidbody2D rb;
     private Vector2 movement;
 
     private float walkTimer;
     private bool walkFrameToggle;
+    private bool isFacingLeft;
+
+    private string lastStatsText;
+
+    public Vector2 Movement => movement;
+    public float MoveSpeed => moveSpeed;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        if (health == null)
+            health = GetComponent<Health>();
+
+        if (weaponController == null)
+            weaponController = GetComponentInChildren<WeaponController>();
 
         if (bodyRenderer == null)
             Debug.LogError("Body Renderer is not assigned!", this);
@@ -40,6 +58,7 @@ public class Player : MonoBehaviour
         HandleInput();
         HandleFlip();
         HandleWalkAnimation();
+        UpdateStatsText();
     }
 
     private void FixedUpdate()
@@ -49,39 +68,28 @@ public class Player : MonoBehaviour
 
     private void HandleInput()
     {
-        movement.x = 0f;
-        movement.y = 0f;
-
-        if (Input.GetKey(KeyCode.A))
-            movement.x = -1f;
-        if (Input.GetKey(KeyCode.D))
-            movement.x = 1f;
-        if (Input.GetKey(KeyCode.W))
-            movement.y = 1f;
-        if (Input.GetKey(KeyCode.S))
-            movement.y = -1f;
-
+        movement.x = Input.GetAxisRaw("Horizontal");
+        movement.y = Input.GetAxisRaw("Vertical");
         movement = movement.normalized;
     }
 
     private void HandleFlip()
     {
-        if (movement.x < 0)
-        {
-            if (bodyRenderer != null)
-                bodyRenderer.flipX = true;
+        if (movement.x < 0f && !isFacingLeft)
+            SetFacing(true);
+        else if (movement.x > 0f && isFacingLeft)
+            SetFacing(false);
+    }
 
-            if (headRenderer != null)
-                headRenderer.flipX = true;
-        }
-        else if (movement.x > 0)
-        {
-            if (bodyRenderer != null)
-                bodyRenderer.flipX = false;
+    private void SetFacing(bool faceLeft)
+    {
+        isFacingLeft = faceLeft;
 
-            if (headRenderer != null)
-                headRenderer.flipX = false;
-        }
+        if (bodyRenderer != null)
+            bodyRenderer.flipX = faceLeft;
+
+        if (headRenderer != null)
+            headRenderer.flipX = faceLeft;
     }
 
     private void HandleWalkAnimation()
@@ -106,5 +114,24 @@ public class Player : MonoBehaviour
         }
 
         bodyRenderer.sprite = walkFrameToggle ? walkBodySprite1 : walkBodySprite2;
+    }
+
+    private void UpdateStatsText()
+    {
+        if (statsText == null)
+            return;
+
+        string fullText =
+            $"HP: {(health != null ? $"{health.CurrentHealth}/{health.MaxHealth}" : "-")}\n" +
+            $"Move Speed: {moveSpeed:0.##}\n" +
+            $"Fire Rate: {(weaponController != null ? weaponController.ShotsPerSecond.ToString("0.##") : "-")}/sec\n" +
+            $"Damage: {(weaponController != null ? weaponController.Damage.ToString() : "-")}\n" +
+            $"Bullet Speed: {(weaponController != null ? weaponController.BulletSpeed.ToString("0.##") : "-")}";
+
+        if (lastStatsText != fullText)
+        {
+            statsText.text = fullText;
+            lastStatsText = fullText;
+        }
     }
 }

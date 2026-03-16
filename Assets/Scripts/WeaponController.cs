@@ -14,9 +14,15 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private float bulletSpeed = 12f;
     [SerializeField] private float shootCooldown = 0.15f;
+    [SerializeField] private int damage = 1;
 
     private Vector2 aimDirection = Vector2.right;
     private float shootTimer;
+
+    public float BulletSpeed => bulletSpeed;
+    public float ShootCooldown => shootCooldown;
+    public float ShotsPerSecond => shootCooldown > 0f ? 1f / shootCooldown : 0f;
+    public int Damage => damage;
 
     private void Awake()
     {
@@ -90,14 +96,10 @@ public class WeaponController : MonoBehaviour
 
         Bullet bulletComponent = bullet.GetComponent<Bullet>();
         if (bulletComponent != null)
-        {
-            bulletComponent.Initialize(Bullet.BulletOwner.Player);
-        }
+            bulletComponent.Initialize(Bullet.BulletOwner.Player, damage);
 
         Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
         if (bulletRb != null)
-        {
             bulletRb.velocity = aimDirection * bulletSpeed;
-        }
     }
 }

@@ -13,6 +13,8 @@ public class Health : MonoBehaviour
     private int currentHealth;
     private Vector3 healthBarStartScale;
 
+    public int CurrentHealth => currentHealth;
+    public int MaxHealth => maxHealth;
     public float HealthNormalized => maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
 
     private void Awake()

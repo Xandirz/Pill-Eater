@@ -10,19 +10,19 @@ public class Bullet : MonoBehaviour
     }
 
     [Header("Settings")]
-    [SerializeField] private int damage = 1;
     [SerializeField] private float lifeTime = 3f;
-
-    [Header("References")]
     [SerializeField] private SpriteRenderer bulletSpriteRenderer;
 
     private BulletOwner owner;
+    private int damage;
 
     public BulletOwner Owner => owner;
+    public int Damage => damage;
 
-    public void Initialize(BulletOwner bulletOwner)
+    public void Initialize(BulletOwner bulletOwner, int bulletDamage)
     {
         owner = bulletOwner;
+        damage = bulletDamage;
         UpdateBulletColor();
     }
 
@@ -103,8 +103,6 @@ public class Bullet : MonoBehaviour
         if (otherBullet == null)
             return;
 
-        // Пуля игрока попадает во вражескую пулю:
-        // вражеская становится отраженной, а пуля игрока НЕ исчезает
         if (owner == BulletOwner.Player && otherBullet.Owner == BulletOwner.Enemy)
         {
             otherBullet.ReflectFromPlayerBullet();

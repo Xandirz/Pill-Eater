@@ -35,13 +35,13 @@ public class Enemy : MonoBehaviour
     [Header("Weapon")]
     [SerializeField] private Transform weaponTransform;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private float weaponDistanceFromEnemy = 0.5f;
 
     [Header("Shooting")]
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private float bulletSpeed = 10f;
     [SerializeField] private float shootCooldown = 0.8f;
     [SerializeField] private float shootRange = 7f;
+    [SerializeField] private int damage = 1;
 
     private Rigidbody2D rb;
     private Vector2 movement;
@@ -102,13 +102,9 @@ public class Enemy : MonoBehaviour
         Vector2 distanceMove = Vector2.zero;
 
         if (distanceToPlayer > maxDistanceToPlayer)
-        {
             distanceMove = aimDirection;
-        }
         else if (distanceToPlayer < minDistanceToPlayer)
-        {
             distanceMove = -aimDirection;
-        }
 
         Vector2 separationMove = GetSeparationVector();
         Vector2 orbitMove = GetOrbitVector(distanceToPlayer);
@@ -157,12 +153,9 @@ public class Enemy : MonoBehaviour
         if (distanceToPlayer > maxDistanceToPlayer + 0.5f)
             return Vector2.zero;
 
-        Vector2 tangent;
-
-        if (orbitClockwise)
-            tangent = new Vector2(-aimDirection.y, aimDirection.x);
-        else
-            tangent = new Vector2(aimDirection.y, -aimDirection.x);
+        Vector2 tangent = orbitClockwise
+            ? new Vector2(-aimDirection.y, aimDirection.x)
+            : new Vector2(aimDirection.y, -aimDirection.x);
 
         return tangent * orbitStrength;
     }
@@ -170,20 +163,15 @@ public class Enemy : MonoBehaviour
     private void HandleFlip()
     {
         if (aimDirection.x < 0f && !isFacingLeft)
-        {
             SetFacing(true);
-        }
         else if (aimDirection.x > 0f && isFacingLeft)
-        {
             SetFacing(false);
-        }
     }
 
     private void SetFacing(bool faceLeft)
     {
         isFacingLeft = faceLeft;
 
-        // Спрайт врага по умолчанию смотрит влево
         if (spriteRenderer != null)
             spriteRenderer.flipX = !faceLeft;
     }
@@ -218,7 +206,6 @@ public class Enemy : MonoBehaviour
             return;
 
         Vector2 weaponDirection = aimDirection.sqrMagnitude > 0.001f ? aimDirection.normalized : Vector2.left;
-
         float angle = Mathf.Atan2(weaponDirection.y, weaponDirection.x) * Mathf.Rad2Deg;
         weaponTransform.rotation = Quaternion.Euler(0f, 0f, angle);
     }
@@ -252,20 +239,10 @@ public class Enemy : MonoBehaviour
 
         Bullet bulletComponent = bullet.GetComponent<Bullet>();
         if (bulletComponent != null)
-        {
-            bulletComponent.Initialize(Bullet.BulletOwner.Enemy);
-        }
-
-        SpriteRenderer bulletSprite = bullet.GetComponentInChildren<SpriteRenderer>();
-        if (bulletSprite != null)
-        {
-            bulletSprite.color = Color.red;
-        }
+            bulletComponent.Initialize(Bullet.BulletOwner.Enemy, damage);
 
         Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
         if (bulletRb != null)
-        {
             bulletRb.velocity = aimDirection * bulletSpeed;
-        }
     }
 }
