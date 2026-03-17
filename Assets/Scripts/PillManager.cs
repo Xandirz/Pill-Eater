@@ -8,18 +8,33 @@ public class PillManager : MonoBehaviour
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
     }
 
     public void SpawnRandomPill(Vector3 position)
     {
-        GameObject pillObj = Instantiate(pillPrefab, position, Quaternion.identity);
+        if (pillPrefab == null)
+        {
+            Debug.LogError("Pill prefab is not assigned!", this);
+            return;
+        }
 
+        GameObject pillObj = Instantiate(pillPrefab, position, Quaternion.identity);
         PillPickup pill = pillObj.GetComponent<PillPickup>();
 
-        int positive = Random.Range(0, 5);
-        int negative = Random.Range(0, 5);
+        if (pill == null)
+        {
+            Debug.LogError("Spawned pill prefab has no PillPickup component!", pillObj);
+            Destroy(pillObj);
+            return;
+        }
 
-        pill.Initialize(positive, negative);
+        pill.InitializeRandom();
     }
 }

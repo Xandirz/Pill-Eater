@@ -15,15 +15,23 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private float bulletSpeed = 12f;
     [SerializeField] private float shootCooldown = 0.15f;
     [SerializeField] private int damage = 1;
+    [SerializeField] private int poisonous = 0;
+    [SerializeField] private int projectilesPerShot = 1;
+    [SerializeField] private int maxProjectilesPerShot = 6;
+    [SerializeField] private float projectileSideSpacing = 0.22f;
     [SerializeField] private float recoilForce = 0f;
-    public float RecoilForce => recoilForce;
-    private Vector2 aimDirection = Vector2.right;
-    private float shootTimer;
 
+    public float RecoilForce => recoilForce;
     public float BulletSpeed => bulletSpeed;
     public float ShootCooldown => shootCooldown;
     public float ShotsPerSecond => shootCooldown > 0f ? 1f / shootCooldown : 0f;
     public int Damage => damage;
+    public int Poisonous => poisonous;
+    public int ProjectilesPerShot => projectilesPerShot;
+    public int MaxProjectilesPerShot => maxProjectilesPerShot;
+
+    private Vector2 aimDirection = Vector2.right;
+    private float shootTimer;
 
     private void Awake()
     {
@@ -41,6 +49,8 @@ public class WeaponController : MonoBehaviour
 
         if (bulletPrefab == null)
             Debug.LogError("Bullet Prefab is not assigned!", this);
+
+        projectilesPerShot = Mathf.Clamp(projectilesPerShot, 1, maxProjectilesPerShot);
     }
 
     private void Update()
@@ -59,7 +69,7 @@ public class WeaponController : MonoBehaviour
         Vector3 mouseWorldPosition = mainCamera.ScreenToWorldPoint(mouseScreenPosition);
         mouseWorldPosition.z = 0f;
 
-        Vector2 direction = (mouseWorldPosition - player.position);
+        Vector2 direction = mouseWorldPosition - player.position;
 
         if (direction.sqrMagnitude > 0.0001f)
             aimDirection = direction.normalized;
@@ -93,26 +103,53 @@ public class WeaponController : MonoBehaviour
         if (bulletPrefab == null || firePoint == null)
             return;
 
-        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+        int projectileCount = Mathf.Clamp(projectilesPerShot, 1, maxProjectilesPerShot);
 
-        Bullet bulletComponent = bullet.GetComponent<Bullet>();
-        if (bulletComponent != null)
-            bulletComponent.Initialize(Bullet.BulletOwner.Player, damage);
+        Vector2 forward = aimDirection.sqrMagnitude > 0.0001f ? aimDirection.normalized : Vector2.right;
+        Vector2 side = new Vector2(-forward.y, forward.x);
 
-        Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
-        if (bulletRb != null)
-            bulletRb.velocity = aimDirection * bulletSpeed;
+        float centerOffset = (projectileCount - 1) * 0.5f;
+
+        for (int i = 0; i < projectileCount; i++)
+        {
+            float lateralIndex = i - centerOffset;
+            Vector3 spawnPosition = firePoint.position + (Vector3)(side * lateralIndex * projectileSideSpacing);
+
+            GameObject bullet = Instantiate(bulletPrefab, spawnPosition, firePoint.rotation);
+
+            Bullet bulletComponent = bullet.GetComponent<Bullet>();
+            if (bulletComponent != null)
+                bulletComponent.Initialize(Bullet.BulletOwner.Player, damage, poisonous);
+
+            Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
+            if (bulletRb != null)
+                bulletRb.velocity = forward * bulletSpeed;
+        }
 
         if (Mathf.Abs(recoilForce) > 0.001f)
             ApplyRecoil();
     }
-    
+
     public void AddDamage(int amount)
     {
         damage += amount;
 
         if (damage < 1)
             damage = 1;
+    }
+
+    public void AddPoisonous(int amount)
+    {
+        poisonous += amount;
+
+        if (poisonous < 0)
+            poisonous = 0;
+    }
+
+    public void AddProjectilesPerShot(int amount)
+    {
+        projectilesPerShot += amount;
+        projectilesPerShot = Mathf.Clamp(projectilesPerShot, 1, maxProjectilesPerShot);
     }
 
     public void AddBulletSpeed(float amount)
@@ -122,6 +159,7 @@ public class WeaponController : MonoBehaviour
         if (bulletSpeed < 3f)
             bulletSpeed = 3f;
     }
+
     public void AddRecoilForce(float amount)
     {
         recoilForce += amount;
@@ -139,6 +177,7 @@ public class WeaponController : MonoBehaviour
         Vector2 recoilDirection = -aimDirection.normalized;
         playerComponent.AddExternalVelocity(recoilDirection * recoilForce);
     }
+
     public void AddShotsPerSecond(float amount)
     {
         float currentShotsPerSecond = shootCooldown > 0f ? 1f / shootCooldown : 0f;

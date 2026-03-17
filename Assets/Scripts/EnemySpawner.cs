@@ -12,7 +12,7 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private int minEnemiesPerWave = 3;
     [SerializeField] private int maxEnemiesPerWave = 5;
     [SerializeField] public float minDistanceFromPlayer = 5f;
-
+    
     private float waveTimer;
     private int waveNumber = 0;
 
@@ -72,7 +72,7 @@ public class EnemySpawner : MonoBehaviour
             Health enemyHealth = enemyObj.GetComponent<Health>();
             if (enemyHealth != null)
             {
-                enemyHealth.AddMaxHealth(waveNumber);
+                enemyHealth.AddMaxHealth(waveNumber*3);
             }
 
             return;

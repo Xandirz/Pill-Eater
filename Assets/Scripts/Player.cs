@@ -8,6 +8,7 @@ public class Player : MonoBehaviour
     [SerializeField] private float moveSpeed = 5f;
     private Vector2 externalVelocity;
     [SerializeField] private float externalVelocityDecay = 8f;
+
     [Header("Body Parts")]
     [SerializeField] private SpriteRenderer bodyRenderer;
     [SerializeField] private SpriteRenderer headRenderer;
@@ -25,23 +26,24 @@ public class Player : MonoBehaviour
     [SerializeField] private TextMeshProUGUI statsTextSecondColumn;
     [SerializeField] private Health health;
     [SerializeField] private WeaponController weaponController;
+
     [Header("Size")]
-    [SerializeField] private Collider2D playerCollider;
     [SerializeField] private float playerSize = 1f;
     [SerializeField] private float minPlayerSize = 0.5f;
+    [SerializeField] private float maxPlayerSize = 5f;
+
     private Vector3 startScale;
-    private Vector2 startColliderSize;
-    private Vector2 startColliderOffset;
-    private float startCircleRadius;
     private Rigidbody2D rb;
     private Vector2 movement;
 
     private float walkTimer;
     private bool walkFrameToggle;
     private bool isFacingLeft;
-    public float PlayerSize => playerSize;
+
     private string lastStatsText;
     private string lastStatsTextSecondColumn;
+
+    public float PlayerSize => playerSize;
     public Vector2 Movement => movement;
     public float MoveSpeed => moveSpeed;
 
@@ -51,29 +53,19 @@ public class Player : MonoBehaviour
 
         if (health == null)
             health = GetComponent<Health>();
-        if (playerCollider == null)
-            playerCollider = GetComponent<Collider2D>();
 
-        startScale = transform.localScale;
-
-        if (playerCollider is BoxCollider2D box)
-        {
-            startColliderSize = box.size;
-            startColliderOffset = box.offset;
-        }
-        else if (playerCollider is CircleCollider2D circle)
-        {
-            startCircleRadius = circle.radius;
-            startColliderOffset = circle.offset;
-        }
         if (weaponController == null)
             weaponController = GetComponentInChildren<WeaponController>();
+
+        startScale = transform.localScale;
 
         if (bodyRenderer == null)
             Debug.LogError("Body Renderer is not assigned!", this);
 
         if (headRenderer == null)
             Debug.LogError("Head Renderer is not assigned!", this);
+
+        ApplyPlayerSize();
     }
 
     private void Update()
@@ -154,7 +146,9 @@ public class Player : MonoBehaviour
 
         string secondColumnText =
             $"Recoil: {(weaponController != null ? weaponController.RecoilForce.ToString("0.##") : "-")}\n" +
-            $"Size: {playerSize:0.##}";
+            $"Size: {playerSize:0.##}\n" +
+            $"Poisonous: {(weaponController != null ? weaponController.Poisonous.ToString() : "-")}\n" +
+            $"Projectiles: {(weaponController != null ? weaponController.ProjectilesPerShot.ToString() : "-")}";
 
         if (statsText != null && lastStatsText != firstColumnText)
         {
@@ -168,10 +162,12 @@ public class Player : MonoBehaviour
             lastStatsTextSecondColumn = secondColumnText;
         }
     }
+
     public void AddExternalVelocity(Vector2 velocity)
     {
         externalVelocity += velocity;
     }
+
     public void AddMoveSpeed(float amount)
     {
         moveSpeed += amount;
@@ -179,29 +175,16 @@ public class Player : MonoBehaviour
         if (moveSpeed < 3f)
             moveSpeed = 3f;
     }
+
     public void AddPlayerSize(float amount)
     {
         playerSize += amount;
-
-        if (playerSize < minPlayerSize)
-            playerSize = minPlayerSize;
-
+        playerSize = Mathf.Clamp(playerSize, minPlayerSize, maxPlayerSize);
         ApplyPlayerSize();
     }
 
     private void ApplyPlayerSize()
     {
         transform.localScale = startScale * playerSize;
-
-        if (playerCollider is BoxCollider2D box)
-        {
-            box.size = startColliderSize * playerSize;
-            box.offset = startColliderOffset * playerSize;
-        }
-        else if (playerCollider is CircleCollider2D circle)
-        {
-            circle.radius = startCircleRadius * playerSize;
-            circle.offset = startColliderOffset * playerSize;
-        }
     }
 }

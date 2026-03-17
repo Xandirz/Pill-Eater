@@ -1,25 +1,68 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 [RequireComponent(typeof(Collider2D))]
 public class PillPickup : MonoBehaviour
 {
-    private const int EffectCount = 7;
+    private enum EffectType
+    {
+        Health = 0,
+        Damage = 1,
+        MoveSpeed = 2,
+        FireRate = 3,
+        BulletSpeed = 4,
+        Recoil = 5,
+        PlayerSize = 6,
+        Poisonous = 7,
+        ProjectilesPerShot = 8
+    }
 
-    private int positiveEffect;
-    private int negativeEffect;
-
+    private EffectType positiveEffect;
+    private EffectType negativeEffect;
     private bool consumed;
 
     public void Initialize(int positive, int negative)
     {
-        positiveEffect = positive;
-        negativeEffect = negative;
+        positiveEffect = ClampEffect(positive);
+        negativeEffect = ClampEffect(negative);
+    }
+
+    public void InitializeRandom()
+    {
+        Player player = FindAnyObjectByType<Player>();
+        if (player == null)
+        {
+            positiveEffect = EffectType.Damage;
+            negativeEffect = EffectType.MoveSpeed;
+            return;
+        }
+
+        Health health = player.GetComponent<Health>();
+        WeaponController weapon = player.GetComponentInChildren<WeaponController>();
+
+        if (health == null || weapon == null)
+        {
+            positiveEffect = EffectType.Damage;
+            negativeEffect = EffectType.MoveSpeed;
+            return;
+        }
+
+        positiveEffect = GetRandomValidEffect(true, player, health, weapon, null);
+        negativeEffect = GetRandomValidEffect(false, player, health, weapon, positiveEffect);
+    }
+
+    private EffectType ClampEffect(int value)
+    {
+        int min = 0;
+        int max = System.Enum.GetValues(typeof(EffectType)).Length - 1;
+        value = Mathf.Clamp(value, min, max);
+        return (EffectType)value;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (consumed) return;
-        if (!other.CompareTag("Player")) return;
+        if (consumed || !other.CompareTag("Player"))
+            return;
 
         Player player = other.GetComponent<Player>();
         if (player == null)
@@ -36,13 +79,13 @@ public class PillPickup : MonoBehaviour
         if (player == null || health == null || weapon == null)
             return;
 
-        int finalPositiveEffect = ResolveValidEffect(positiveEffect, true, player, health, weapon);
-        int finalNegativeEffect = ResolveValidEffect(negativeEffect, false, player, health, weapon);
+        positiveEffect = EnsureValidEffect(positiveEffect, true, player, health, weapon, null);
+        negativeEffect = EnsureValidEffect(negativeEffect, false, player, health, weapon, positiveEffect);
 
-        string positiveText = ApplyEffect(finalPositiveEffect, true, player, health, weapon);
-        string negativeText = ApplyEffect(finalNegativeEffect, false, player, health, weapon);
+        string positiveText = ApplyEffect(positiveEffect, true, player, health, weapon);
+        string negativeText = ApplyEffect(negativeEffect, false, player, health, weapon);
 
-        string combinedPopup = "";
+        string combinedPopup = string.Empty;
 
         if (!string.IsNullOrEmpty(positiveText))
             combinedPopup += $"<color=#59FF7A>{positiveText}</color>";
@@ -58,7 +101,7 @@ public class PillPickup : MonoBehaviour
         if (!string.IsNullOrEmpty(combinedPopup))
         {
             MessagePopUp.CreateRaw(
-                transform.position + Vector3.up * 1f,
+                transform.position + Vector3.up,
                 combinedPopup
             );
         }
@@ -67,110 +110,169 @@ public class PillPickup : MonoBehaviour
         Destroy(gameObject);
     }
 
-    private int ResolveValidEffect(int effect, bool positive, Player player, Health health, WeaponController weapon)
+    private EffectType EnsureValidEffect(
+        EffectType effect,
+        bool positive,
+        Player player,
+        Health health,
+        WeaponController weapon,
+        EffectType? forbiddenEffect)
     {
-        if (IsEffectAllowed(effect, positive, player, health, weapon))
+        if (IsEffectAllowed(effect, positive, player, health, weapon, forbiddenEffect))
             return effect;
 
-        int[] validEffects = new int[EffectCount];
-        int validCount = 0;
+        return GetRandomValidEffect(positive, player, health, weapon, forbiddenEffect);
+    }
 
-        for (int i = 0; i < EffectCount; i++)
+    private EffectType GetRandomValidEffect(
+        bool positive,
+        Player player,
+        Health health,
+        WeaponController weapon,
+        EffectType? forbiddenEffect)
+    {
+        List<EffectType> validEffects = new List<EffectType>();
+
+        foreach (EffectType effect in System.Enum.GetValues(typeof(EffectType)))
         {
-            if (IsEffectAllowed(i, positive, player, health, weapon))
+            if (IsEffectAllowed(effect, positive, player, health, weapon, forbiddenEffect))
+                validEffects.Add(effect);
+        }
+
+        if (validEffects.Count == 0)
+        {
+            foreach (EffectType effect in System.Enum.GetValues(typeof(EffectType)))
             {
-                validEffects[validCount] = i;
-                validCount++;
+                if (forbiddenEffect.HasValue && effect == forbiddenEffect.Value)
+                    continue;
+
+                validEffects.Add(effect);
             }
         }
 
-        if (validCount == 0)
-            return effect;
-
-        return validEffects[Random.Range(0, validCount)];
+        return validEffects[Random.Range(0, validEffects.Count)];
     }
 
-    private bool IsEffectAllowed(int effect, bool positive, Player player, Health health, WeaponController weapon)
+    private bool IsEffectAllowed(
+        EffectType effect,
+        bool positive,
+        Player player,
+        Health health,
+        WeaponController weapon,
+        EffectType? forbiddenEffect)
     {
+        if (forbiddenEffect.HasValue && effect == forbiddenEffect.Value)
+            return false;
+
         switch (effect)
         {
-            case 0: // Heal / Damage HP
+            case EffectType.Health:
             {
                 if (positive)
                     return health.CurrentHealth < health.MaxHealth;
 
-                return health.CurrentHealth >= 11;
+                return health.CurrentHealth > 1;
             }
 
-            case 1: // Damage
+            case EffectType.Damage:
             {
                 if (positive)
                     return true;
 
-                return weapon.Damage > 0;
+                return weapon.Damage > 1;
             }
 
-            case 2: // Move Speed
+            case EffectType.MoveSpeed:
             {
                 if (positive)
                     return true;
 
-                return player.MoveSpeed > 3f;
+                return player.MoveSpeed > 4f;
             }
 
-            case 3: // Fire Rate
+            case EffectType.FireRate:
             {
                 if (positive)
                     return true;
 
-                return weapon.ShootCooldown > 0.5f;
+                return weapon.ShotsPerSecond > 1f;
             }
 
-            case 4: // Bullet Speed
+            case EffectType.BulletSpeed:
             {
                 if (positive)
                     return true;
 
-                return weapon.BulletSpeed >= 3f;
+                return weapon.BulletSpeed > 3f;
             }
-            case 5: // Recoil
+
+            case EffectType.Recoil:
             {
                 return true;
             }
 
-            case 6: // Player Size
+            case EffectType.PlayerSize:
             {
                 if (positive)
-                    return player.PlayerSize < 5f;
+                    return player.PlayerSize < 4f;
 
-                return player.PlayerSize > 0.75f;
+                return player.PlayerSize > 0.25f;
+            }
+
+            case EffectType.Poisonous:
+            {
+                if (positive)
+                    return true;
+
+                return weapon.Poisonous > 0;
+            }
+
+            case EffectType.ProjectilesPerShot:
+            {
+                if (positive)
+                    return weapon.ProjectilesPerShot < weapon.MaxProjectilesPerShot;
+
+                return weapon.ProjectilesPerShot > 1;
             }
         }
 
         return false;
     }
 
-    private string ApplyEffect(int effect, bool positive, Player player, Health health, WeaponController weapon)
+    private string ApplyEffect(
+        EffectType effect,
+        bool positive,
+        Player player,
+        Health health,
+        WeaponController weapon)
     {
         switch (effect)
         {
-            case 0: // Heal / Damage HP
+            case EffectType.Health:
             {
                 if (positive)
                 {
-                    int healAmount = Random.Range(1, 11);
+                    int missingHealth = health.MaxHealth - health.CurrentHealth;
+                    if (missingHealth <= 0)
+                        return null;
+
+                    int healAmount = Random.Range(1, Mathf.Min(10, missingHealth) + 1);
                     health.Heal(healAmount);
                     return $"+{healAmount} HP";
                 }
                 else
                 {
-                    int damageAmount = Random.Range(1, 11);
+                    int maxSafeDamage = health.CurrentHealth - 1;
+                    if (maxSafeDamage <= 0)
+                        return null;
+
+                    int damageAmount = Random.Range(1, Mathf.Min(10, maxSafeDamage) + 1);
                     health.TakeDamage(damageAmount);
                     return $"-{damageAmount} HP";
                 }
             }
 
-            case 1: // Damage
+            case EffectType.Damage:
             {
                 int amount = positive ? Random.Range(1, 4) : Random.Range(1, 3);
 
@@ -181,12 +283,16 @@ public class PillPickup : MonoBehaviour
                 }
                 else
                 {
-                    weapon.AddDamage(-amount);
-                    return $"-{amount} Damage";
+                    int realAmount = Mathf.Min(amount, weapon.Damage - 1);
+                    if (realAmount <= 0)
+                        return null;
+
+                    weapon.AddDamage(-realAmount);
+                    return $"-{realAmount} Damage";
                 }
             }
 
-            case 2: // Move Speed
+            case EffectType.MoveSpeed:
             {
                 int amount = positive ? Random.Range(1, 4) : Random.Range(1, 3);
 
@@ -197,12 +303,17 @@ public class PillPickup : MonoBehaviour
                 }
                 else
                 {
-                    player.AddMoveSpeed(-amount);
-                    return $"-{amount} Move Speed";
+                    float maxReduction = player.MoveSpeed - 3f;
+                    int realAmount = Mathf.Min(amount, Mathf.FloorToInt(maxReduction));
+                    if (realAmount <= 0)
+                        return null;
+
+                    player.AddMoveSpeed(-realAmount);
+                    return $"-{realAmount} Move Speed";
                 }
             }
 
-            case 3: // Fire Rate
+            case EffectType.FireRate:
             {
                 int amount = positive ? Random.Range(1, 4) : Random.Range(1, 3);
 
@@ -213,12 +324,17 @@ public class PillPickup : MonoBehaviour
                 }
                 else
                 {
-                    weapon.AddShotsPerSecond(-amount);
-                    return $"-{amount} Fire Rate";
+                    float maxReduction = weapon.ShotsPerSecond - 0.5f;
+                    int realAmount = Mathf.Min(amount, Mathf.FloorToInt(maxReduction));
+                    if (realAmount <= 0)
+                        return null;
+
+                    weapon.AddShotsPerSecond(-realAmount);
+                    return $"-{realAmount} Fire Rate";
                 }
             }
 
-            case 4: // Bullet Speed
+            case EffectType.BulletSpeed:
             {
                 int amount = positive ? Random.Range(1, 4) : Random.Range(1, 3);
 
@@ -229,14 +345,19 @@ public class PillPickup : MonoBehaviour
                 }
                 else
                 {
-                    weapon.AddBulletSpeed(-amount);
-                    return $"-{amount} Bullet Speed";
+                    float maxReduction = weapon.BulletSpeed - 3f;
+                    int realAmount = Mathf.Min(amount, Mathf.FloorToInt(maxReduction));
+                    if (realAmount <= 0)
+                        return null;
+
+                    weapon.AddBulletSpeed(-realAmount);
+                    return $"-{realAmount} Bullet Speed";
                 }
             }
-            
-            case 5: // Recoil
+
+            case EffectType.Recoil:
             {
-                float amount = Random.Range(1, 5);
+                float amount = Random.Range(1f, 5f);
 
                 if (positive)
                 {
@@ -250,9 +371,10 @@ public class PillPickup : MonoBehaviour
                 }
             }
 
-            case 6: // Player Size
+            case EffectType.PlayerSize:
             {
-                float amount = positive ? Random.Range(0.1f, 0.35f) : Random.Range(0.1f, 0.25f);
+                float[] sizeSteps = { 0.25f, 0.5f, 0.75f, 1f };
+                float amount = sizeSteps[Random.Range(0, sizeSteps.Length)];
 
                 if (positive)
                 {
@@ -263,6 +385,48 @@ public class PillPickup : MonoBehaviour
                 {
                     player.AddPlayerSize(-amount);
                     return $"-{amount:0.##} Size";
+                }
+            }
+
+            case EffectType.Poisonous:
+            {
+                int amount = positive ? Random.Range(1, 4) : Random.Range(1, 3);
+
+                if (positive)
+                {
+                    weapon.AddPoisonous(amount);
+                    return $"+{amount} Poisonous";
+                }
+                else
+                {
+                    int realAmount = Mathf.Min(amount, weapon.Poisonous);
+                    if (realAmount <= 0)
+                        return null;
+
+                    weapon.AddPoisonous(-realAmount);
+                    return $"-{realAmount} Poisonous";
+                }
+            }
+
+            case EffectType.ProjectilesPerShot:
+            {
+                int amount = 1;
+
+                if (positive)
+                {
+                    if (weapon.ProjectilesPerShot >= weapon.MaxProjectilesPerShot)
+                        return null;
+
+                    weapon.AddProjectilesPerShot(amount);
+                    return $"+{amount} Projectiles";
+                }
+                else
+                {
+                    if (weapon.ProjectilesPerShot <= 1)
+                        return null;
+
+                    weapon.AddProjectilesPerShot(-amount);
+                    return $"-{amount} Projectiles";
                 }
             }
         }

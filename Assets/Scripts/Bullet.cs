@@ -15,14 +15,16 @@ public class Bullet : MonoBehaviour
 
     private BulletOwner owner;
     private int damage;
+    private int poisonStacksToApply;
 
     public BulletOwner Owner => owner;
     public int Damage => damage;
 
-    public void Initialize(BulletOwner bulletOwner, int bulletDamage)
+    public void Initialize(BulletOwner bulletOwner, int bulletDamage, int poisonStacks = 0)
     {
         owner = bulletOwner;
         damage = bulletDamage;
+        poisonStacksToApply = poisonStacks;
         UpdateBulletColor();
     }
 
@@ -120,6 +122,11 @@ public class Bullet : MonoBehaviour
             health = other.GetComponent<Health>();
 
         if (health != null)
+        {
             health.TakeDamage(damage);
+
+            if ((owner == BulletOwner.Player || owner == BulletOwner.Reflected) && poisonStacksToApply > 0)
+                health.AddPoisonStacks(poisonStacksToApply);
+        }
     }
 }
