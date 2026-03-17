@@ -21,6 +21,13 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private float projectileSideSpacing = 0.22f;
     [SerializeField] private float recoilForce = 0f;
 
+    [Header("Special Chances")]
+    [SerializeField] private int explosionChance = 0;
+    [SerializeField] private int homingChance = 0;
+
+    private Vector2 aimDirection = Vector2.right;
+    private float shootTimer;
+
     public float RecoilForce => recoilForce;
     public float BulletSpeed => bulletSpeed;
     public float ShootCooldown => shootCooldown;
@@ -29,9 +36,9 @@ public class WeaponController : MonoBehaviour
     public int Poisonous => poisonous;
     public int ProjectilesPerShot => projectilesPerShot;
     public int MaxProjectilesPerShot => maxProjectilesPerShot;
-
-    private Vector2 aimDirection = Vector2.right;
-    private float shootTimer;
+    public int ExplosionChance => explosionChance;
+    public int HomingChance => homingChance;
+    public GameObject BulletPrefab => bulletPrefab;
 
     private void Awake()
     {
@@ -51,6 +58,11 @@ public class WeaponController : MonoBehaviour
             Debug.LogError("Bullet Prefab is not assigned!", this);
 
         projectilesPerShot = Mathf.Clamp(projectilesPerShot, 1, maxProjectilesPerShot);
+        explosionChance = Mathf.Clamp(explosionChance, 0, 100);
+        homingChance = Mathf.Clamp(homingChance, 0, 100);
+        poisonous = Mathf.Max(0, poisonous);
+        damage = Mathf.Max(1, damage);
+        bulletSpeed = Mathf.Max(3f, bulletSpeed);
     }
 
     private void Update()
@@ -119,7 +131,17 @@ public class WeaponController : MonoBehaviour
 
             Bullet bulletComponent = bullet.GetComponent<Bullet>();
             if (bulletComponent != null)
-                bulletComponent.Initialize(Bullet.BulletOwner.Player, damage, poisonous);
+            {
+                bool isHoming = Random.Range(0, 100) < homingChance;
+
+                bulletComponent.Initialize(
+                    Bullet.BulletOwner.Player,
+                    damage,
+                    poisonous,
+                    isHoming,
+                    bulletSpeed
+                );
+            }
 
             Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
             if (bulletRb != null)
@@ -163,6 +185,18 @@ public class WeaponController : MonoBehaviour
     public void AddRecoilForce(float amount)
     {
         recoilForce += amount;
+    }
+
+    public void AddExplosionChance(int amount)
+    {
+        explosionChance += amount;
+        explosionChance = Mathf.Clamp(explosionChance, 0, 100);
+    }
+
+    public void AddHomingChance(int amount)
+    {
+        homingChance += amount;
+        homingChance = Mathf.Clamp(homingChance, 0, 100);
     }
 
     private void ApplyRecoil()

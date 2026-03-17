@@ -180,9 +180,51 @@ public class Health : MonoBehaviour
 
     private void Die()
     {
-        if (!isPlayer && PillManager.Instance != null)
-            PillManager.Instance.SpawnRandomPill(transform.position);
+        if (!isPlayer)
+        {
+            TrySpawnExplosionBullets();
+
+            if (PillManager.Instance != null)
+                PillManager.Instance.SpawnRandomPill(transform.position);
+        }
 
         Destroy(gameObject);
+    }
+
+    private void TrySpawnExplosionBullets()
+    {
+        Player player = FindAnyObjectByType<Player>();
+        if (player == null)
+            return;
+
+        WeaponController weapon = player.GetComponentInChildren<WeaponController>();
+        if (weapon == null)
+            return;
+
+        if (weapon.BulletPrefab == null)
+            return;
+
+        if (Random.Range(0, 100) >= weapon.ExplosionChance)
+            return;
+
+        const int bulletCount = 9;
+        float angleStep = 360f / bulletCount;
+
+        for (int i = 0; i < bulletCount; i++)
+        {
+            float angle = angleStep * i;
+            float radians = angle * Mathf.Deg2Rad;
+            Vector2 direction = new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)).normalized;
+
+            GameObject bullet = Instantiate(weapon.BulletPrefab, transform.position, Quaternion.Euler(0f, 0f, angle));
+
+            Bullet bulletComponent = bullet.GetComponent<Bullet>();
+            if (bulletComponent != null)
+                bulletComponent.Initialize(Bullet.BulletOwner.Player, weapon.Damage, 0, false, weapon.BulletSpeed);
+
+            Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
+            if (bulletRb != null)
+                bulletRb.velocity = direction * weapon.BulletSpeed;
+        }
     }
 }

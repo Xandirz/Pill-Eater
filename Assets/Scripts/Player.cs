@@ -24,9 +24,9 @@ public class Player : MonoBehaviour
     [Header("Stats UI")]
     [SerializeField] private TextMeshProUGUI statsText;
     [SerializeField] private TextMeshProUGUI statsTextSecondColumn;
+    [SerializeField] private TextMeshProUGUI statsTextThirdColumn;
     [SerializeField] private Health health;
     [SerializeField] private WeaponController weaponController;
-
     [Header("Size")]
     [SerializeField] private float playerSize = 1f;
     [SerializeField] private float minPlayerSize = 0.5f;
@@ -42,6 +42,7 @@ public class Player : MonoBehaviour
 
     private string lastStatsText;
     private string lastStatsTextSecondColumn;
+    private string lastStatsTextThirdColumn;
 
     public float PlayerSize => playerSize;
     public Vector2 Movement => movement;
@@ -134,7 +135,7 @@ public class Player : MonoBehaviour
 
     private void UpdateStatsText()
     {
-        if (statsText == null && statsTextSecondColumn == null)
+        if (statsText == null && statsTextSecondColumn == null && statsTextThirdColumn == null)
             return;
 
         string firstColumnText =
@@ -147,8 +148,10 @@ public class Player : MonoBehaviour
         string secondColumnText =
             $"Recoil: {(weaponController != null ? weaponController.RecoilForce.ToString("0.##") : "-")}\n" +
             $"Size: {playerSize:0.##}\n" +
-            $"Poisonous: {(weaponController != null ? weaponController.Poisonous.ToString() : "-")}\n" +
-            $"Projectiles: {(weaponController != null ? weaponController.ProjectilesPerShot.ToString() : "-")}";
+            $"Explosion Chance: {(weaponController != null ? weaponController.ExplosionChance.ToString() : "-")}%";
+
+        string thirdColumnText =
+            $"Homing Chance: {(weaponController != null ? weaponController.HomingChance.ToString() : "-")}%";
 
         if (statsText != null && lastStatsText != firstColumnText)
         {
@@ -160,6 +163,11 @@ public class Player : MonoBehaviour
         {
             statsTextSecondColumn.text = secondColumnText;
             lastStatsTextSecondColumn = secondColumnText;
+        }
+
+        if (statsTextThirdColumn != null)
+        {
+            statsTextThirdColumn.text = thirdColumnText;
         }
     }
 

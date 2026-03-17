@@ -11,20 +11,40 @@ public class Bullet : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] private float lifeTime = 3f;
+    [SerializeField] private float homingLifeTime = 10f;
+    [SerializeField] private float homingTurnSpeed = 8f;
     [SerializeField] private SpriteRenderer bulletSpriteRenderer;
 
     private BulletOwner owner;
     private int damage;
     private int poisonStacksToApply;
+    private bool isHoming;
+    private float moveSpeed;
+    private float currentLifeTime;
 
     public BulletOwner Owner => owner;
     public int Damage => damage;
+    public int PoisonStacksToApply => poisonStacksToApply;
+    public bool IsHoming => isHoming;
 
-    public void Initialize(BulletOwner bulletOwner, int bulletDamage, int poisonStacks = 0)
+    public void Initialize(BulletOwner bulletOwner, int bulletDamage)
+    {
+        Initialize(bulletOwner, bulletDamage, 0, false, 12f);
+    }
+
+    public void Initialize(BulletOwner bulletOwner, int bulletDamage, bool homing, float speed)
+    {
+        Initialize(bulletOwner, bulletDamage, 0, homing, speed);
+    }
+
+    public void Initialize(BulletOwner bulletOwner, int bulletDamage, int poisonStacks, bool homing = false, float speed = 12f)
     {
         owner = bulletOwner;
         damage = bulletDamage;
         poisonStacksToApply = poisonStacks;
+        isHoming = homing;
+        moveSpeed = speed;
+        currentLifeTime = isHoming ? homingLifeTime : lifeTime;
         UpdateBulletColor();
     }
 
@@ -36,8 +56,63 @@ public class Bullet : MonoBehaviour
 
     private void Start()
     {
-        Destroy(gameObject, lifeTime);
+        if (currentLifeTime <= 0f)
+            currentLifeTime = isHoming ? homingLifeTime : lifeTime;
+
+        Destroy(gameObject, currentLifeTime);
         UpdateBulletColor();
+    }
+
+    private void Update()
+    {
+        if (!isHoming)
+            return;
+
+        if (owner != BulletOwner.Player && owner != BulletOwner.Reflected)
+            return;
+
+        Transform target = FindClosestEnemy();
+        if (target == null)
+            return;
+
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb == null)
+            return;
+
+        Vector2 currentDirection = rb.velocity.sqrMagnitude > 0.001f
+            ? rb.velocity.normalized
+            : ((Vector2)target.position - (Vector2)transform.position).normalized;
+
+        Vector2 desiredDirection = ((Vector2)target.position - (Vector2)transform.position).normalized;
+        Vector2 newDirection = Vector2.Lerp(currentDirection, desiredDirection, homingTurnSpeed * Time.deltaTime).normalized;
+
+        rb.velocity = newDirection * moveSpeed;
+
+        float angle = Mathf.Atan2(newDirection.y, newDirection.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.Euler(0f, 0f, angle);
+    }
+
+    private Transform FindClosestEnemy()
+    {
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        Transform closest = null;
+        float bestDistanceSqr = float.MaxValue;
+        Vector2 currentPosition = transform.position;
+
+        foreach (GameObject enemy in enemies)
+        {
+            if (enemy == null)
+                continue;
+
+            float distanceSqr = ((Vector2)enemy.transform.position - currentPosition).sqrMagnitude;
+            if (distanceSqr < bestDistanceSqr)
+            {
+                bestDistanceSqr = distanceSqr;
+                closest = enemy.transform;
+            }
+        }
+
+        return closest;
     }
 
     private void UpdateBulletColor()
@@ -48,7 +123,7 @@ public class Bullet : MonoBehaviour
         switch (owner)
         {
             case BulletOwner.Player:
-                bulletSpriteRenderer.color = Color.white;
+                bulletSpriteRenderer.color = isHoming ? new Color(0.6f, 1f, 0.6f, 1f) : Color.white;
                 break;
 
             case BulletOwner.Enemy:
@@ -56,7 +131,7 @@ public class Bullet : MonoBehaviour
                 break;
 
             case BulletOwner.Reflected:
-                bulletSpriteRenderer.color = Color.yellow;
+                bulletSpriteRenderer.color = isHoming ? new Color(1f, 1f, 0.5f, 1f) : Color.yellow;
                 break;
         }
     }
