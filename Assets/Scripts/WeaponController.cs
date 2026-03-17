@@ -15,7 +15,8 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private float bulletSpeed = 12f;
     [SerializeField] private float shootCooldown = 0.15f;
     [SerializeField] private int damage = 1;
-
+    [SerializeField] private float recoilForce = 0f;
+    public float RecoilForce => recoilForce;
     private Vector2 aimDirection = Vector2.right;
     private float shootTimer;
 
@@ -101,5 +102,51 @@ public class WeaponController : MonoBehaviour
         Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
         if (bulletRb != null)
             bulletRb.velocity = aimDirection * bulletSpeed;
+
+        if (Mathf.Abs(recoilForce) > 0.001f)
+            ApplyRecoil();
+    }
+    
+    public void AddDamage(int amount)
+    {
+        damage += amount;
+
+        if (damage < 1)
+            damage = 1;
+    }
+
+    public void AddBulletSpeed(float amount)
+    {
+        bulletSpeed += amount;
+
+        if (bulletSpeed < 3f)
+            bulletSpeed = 3f;
+    }
+    public void AddRecoilForce(float amount)
+    {
+        recoilForce += amount;
+    }
+
+    private void ApplyRecoil()
+    {
+        if (player == null)
+            return;
+
+        Player playerComponent = player.GetComponent<Player>();
+        if (playerComponent == null)
+            return;
+
+        Vector2 recoilDirection = -aimDirection.normalized;
+        playerComponent.AddExternalVelocity(recoilDirection * recoilForce);
+    }
+    public void AddShotsPerSecond(float amount)
+    {
+        float currentShotsPerSecond = shootCooldown > 0f ? 1f / shootCooldown : 0f;
+        currentShotsPerSecond += amount;
+
+        if (currentShotsPerSecond < 0.5f)
+            currentShotsPerSecond = 0.5f;
+
+        shootCooldown = 1f / currentShotsPerSecond;
     }
 }

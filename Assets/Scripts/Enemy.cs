@@ -43,6 +43,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float shootRange = 7f;
     [SerializeField] private int damage = 1;
 
+    private Vector3 firePointStartLocalPosition;
     private Rigidbody2D rb;
     private Vector2 movement;
     private Vector2 aimDirection = Vector2.left;
@@ -58,7 +59,7 @@ public class Enemy : MonoBehaviour
         orbitClockwise = Random.value > 0.5f;
 
         if (player == null)
-            Debug.LogError("Player is not assigned!", this);
+            player = GameObject.FindGameObjectWithTag("Player")?.transform;
 
         if (spriteRenderer == null)
             Debug.LogError("Sprite Renderer is not assigned!", this);
@@ -68,6 +69,8 @@ public class Enemy : MonoBehaviour
 
         if (firePoint == null)
             Debug.LogError("Fire Point is not assigned!", this);
+        else
+            firePointStartLocalPosition = firePoint.localPosition;
 
         if (bulletPrefab == null)
             Debug.LogError("Bullet Prefab is not assigned!", this);
@@ -174,6 +177,13 @@ public class Enemy : MonoBehaviour
 
         if (spriteRenderer != null)
             spriteRenderer.flipX = !faceLeft;
+
+        if (firePoint != null)
+        {
+            Vector3 pos = firePointStartLocalPosition;
+            pos.x = Mathf.Abs(firePointStartLocalPosition.x) * (faceLeft ? -1f : 1f);
+            firePoint.localPosition = pos;
+        }
     }
 
     private void HandleWalkAnimation()

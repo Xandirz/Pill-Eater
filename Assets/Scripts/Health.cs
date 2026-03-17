@@ -27,7 +27,14 @@ public class Health : MonoBehaviour
             UpdateHealthBar();
         }
     }
+    public void AddMaxHealth(int amount)
+    {
+        maxHealth += amount;
+        currentHealth += amount;
 
+        if (!isPlayer)
+            UpdateHealthBar();
+    }
     public void TakeDamage(int damage)
     {
         currentHealth -= damage;
@@ -86,6 +93,9 @@ public class Health : MonoBehaviour
 
     private void Die()
     {
+        if (!isPlayer && PillManager.Instance != null)
+            PillManager.Instance.SpawnRandomPill(transform.position);
+
         Destroy(gameObject);
     }
 }

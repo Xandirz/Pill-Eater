@@ -6,7 +6,8 @@ public class Player : MonoBehaviour
 {
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
-
+    private Vector2 externalVelocity;
+    [SerializeField] private float externalVelocityDecay = 8f;
     [Header("Body Parts")]
     [SerializeField] private SpriteRenderer bodyRenderer;
     [SerializeField] private SpriteRenderer headRenderer;
@@ -21,18 +22,26 @@ public class Player : MonoBehaviour
 
     [Header("Stats UI")]
     [SerializeField] private TextMeshProUGUI statsText;
+    [SerializeField] private TextMeshProUGUI statsTextSecondColumn;
     [SerializeField] private Health health;
     [SerializeField] private WeaponController weaponController;
-
+    [Header("Size")]
+    [SerializeField] private Collider2D playerCollider;
+    [SerializeField] private float playerSize = 1f;
+    [SerializeField] private float minPlayerSize = 0.5f;
+    private Vector3 startScale;
+    private Vector2 startColliderSize;
+    private Vector2 startColliderOffset;
+    private float startCircleRadius;
     private Rigidbody2D rb;
     private Vector2 movement;
 
     private float walkTimer;
     private bool walkFrameToggle;
     private bool isFacingLeft;
-
+    public float PlayerSize => playerSize;
     private string lastStatsText;
-
+    private string lastStatsTextSecondColumn;
     public Vector2 Movement => movement;
     public float MoveSpeed => moveSpeed;
 
@@ -42,7 +51,21 @@ public class Player : MonoBehaviour
 
         if (health == null)
             health = GetComponent<Health>();
+        if (playerCollider == null)
+            playerCollider = GetComponent<Collider2D>();
 
+        startScale = transform.localScale;
+
+        if (playerCollider is BoxCollider2D box)
+        {
+            startColliderSize = box.size;
+            startColliderOffset = box.offset;
+        }
+        else if (playerCollider is CircleCollider2D circle)
+        {
+            startCircleRadius = circle.radius;
+            startColliderOffset = circle.offset;
+        }
         if (weaponController == null)
             weaponController = GetComponentInChildren<WeaponController>();
 
@@ -63,7 +86,8 @@ public class Player : MonoBehaviour
 
     private void FixedUpdate()
     {
-        rb.velocity = movement * moveSpeed;
+        rb.velocity = movement * moveSpeed + externalVelocity;
+        externalVelocity = Vector2.Lerp(externalVelocity, Vector2.zero, externalVelocityDecay * Time.fixedDeltaTime);
     }
 
     private void HandleInput()
@@ -118,20 +142,66 @@ public class Player : MonoBehaviour
 
     private void UpdateStatsText()
     {
-        if (statsText == null)
+        if (statsText == null && statsTextSecondColumn == null)
             return;
 
-        string fullText =
+        string firstColumnText =
             $"HP: {(health != null ? $"{health.CurrentHealth}/{health.MaxHealth}" : "-")}\n" +
             $"Move Speed: {moveSpeed:0.##}\n" +
             $"Fire Rate: {(weaponController != null ? weaponController.ShotsPerSecond.ToString("0.##") : "-")}/sec\n" +
             $"Damage: {(weaponController != null ? weaponController.Damage.ToString() : "-")}\n" +
             $"Bullet Speed: {(weaponController != null ? weaponController.BulletSpeed.ToString("0.##") : "-")}";
 
-        if (lastStatsText != fullText)
+        string secondColumnText =
+            $"Recoil: {(weaponController != null ? weaponController.RecoilForce.ToString("0.##") : "-")}\n" +
+            $"Size: {playerSize:0.##}";
+
+        if (statsText != null && lastStatsText != firstColumnText)
         {
-            statsText.text = fullText;
-            lastStatsText = fullText;
+            statsText.text = firstColumnText;
+            lastStatsText = firstColumnText;
+        }
+
+        if (statsTextSecondColumn != null && lastStatsTextSecondColumn != secondColumnText)
+        {
+            statsTextSecondColumn.text = secondColumnText;
+            lastStatsTextSecondColumn = secondColumnText;
+        }
+    }
+    public void AddExternalVelocity(Vector2 velocity)
+    {
+        externalVelocity += velocity;
+    }
+    public void AddMoveSpeed(float amount)
+    {
+        moveSpeed += amount;
+
+        if (moveSpeed < 3f)
+            moveSpeed = 3f;
+    }
+    public void AddPlayerSize(float amount)
+    {
+        playerSize += amount;
+
+        if (playerSize < minPlayerSize)
+            playerSize = minPlayerSize;
+
+        ApplyPlayerSize();
+    }
+
+    private void ApplyPlayerSize()
+    {
+        transform.localScale = startScale * playerSize;
+
+        if (playerCollider is BoxCollider2D box)
+        {
+            box.size = startColliderSize * playerSize;
+            box.offset = startColliderOffset * playerSize;
+        }
+        else if (playerCollider is CircleCollider2D circle)
+        {
+            circle.radius = startCircleRadius * playerSize;
+            circle.offset = startColliderOffset * playerSize;
         }
     }
 }

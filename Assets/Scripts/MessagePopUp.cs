@@ -17,7 +17,7 @@ public class MessagePopUp : MonoBehaviour
     [SerializeField] private float marginPixels = 20f;
 
     private float t;
-    private Color c;
+    private float alpha = 1f;
 
     public enum Style
     {
@@ -53,6 +53,33 @@ public class MessagePopUp : MonoBehaviour
         return popup;
     }
 
+    public static MessagePopUp CreateRaw(Vector3 worldPos, string msg)
+    {
+        if (GameAssets.i == null)
+        {
+            Debug.LogError("GameAssets instance not found in scene!");
+            return null;
+        }
+
+        if (GameAssets.i.pfMessagePopUp == null)
+        {
+            Debug.LogError("pfMessagePopUp is not assigned in GameAssets!");
+            return null;
+        }
+
+        Canvas canvas = FindAnyObjectByType<Canvas>();
+        if (canvas == null)
+        {
+            Debug.LogError("No Canvas in scene for MessagePopUp!");
+            return null;
+        }
+
+        Transform popupTransform = Instantiate(GameAssets.i.pfMessagePopUp, canvas.transform);
+        MessagePopUp popup = popupTransform.GetComponent<MessagePopUp>();
+        popup.SetupRaw(worldPos, msg);
+        return popup;
+    }
+
     private void Awake()
     {
         if (rect == null)
@@ -68,7 +95,11 @@ public class MessagePopUp : MonoBehaviour
             canvasRect = canvas.GetComponent<RectTransform>();
 
         if (text != null)
-            c = text.color;
+        {
+            text.richText = true;
+            alpha = 1f;
+            text.alpha = alpha;
+        }
     }
 
     private void Setup(Vector3 worldPos, string msg, Style style)
@@ -76,12 +107,13 @@ public class MessagePopUp : MonoBehaviour
         if (text == null)
             return;
 
+        text.richText = true;
         text.text = msg;
 
         switch (style)
         {
             case Style.Info:
-                text.color = Color.white;
+                text.color = new Color(0.35f, 1f, 0.35f, 1f);
                 break;
 
             case Style.Warning:
@@ -93,7 +125,23 @@ public class MessagePopUp : MonoBehaviour
                 break;
         }
 
-        c = text.color;
+        alpha = 1f;
+        text.alpha = alpha;
+
+        SetPositionNearWorld(worldPos, true);
+    }
+
+    private void SetupRaw(Vector3 worldPos, string msg)
+    {
+        if (text == null)
+            return;
+
+        text.richText = true;
+        text.text = msg;
+
+        alpha = 1f;
+        text.alpha = alpha;
+
         SetPositionNearWorld(worldPos, true);
     }
 
@@ -140,10 +188,10 @@ public class MessagePopUp : MonoBehaviour
 
         if (t >= lifeTime)
         {
-            c.a -= fadeSpeed * Time.deltaTime;
-            text.color = c;
+            alpha -= fadeSpeed * Time.deltaTime;
+            text.alpha = alpha;
 
-            if (c.a <= 0f)
+            if (alpha <= 0f)
                 Destroy(gameObject);
         }
     }
