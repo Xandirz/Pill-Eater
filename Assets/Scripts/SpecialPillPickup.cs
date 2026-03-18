@@ -14,14 +14,19 @@ public class SpecialPillPickup : MonoBehaviour
         if (weapon == null)
             weapon = other.GetComponentInParent<WeaponController>();
 
-        if (weapon == null)
+        Health health = other.GetComponent<Health>();
+        if (health == null)
+            health = other.GetComponentInParent<Health>();
+
+        if (weapon == null || health == null)
             return;
 
         weapon.AddDamage(1);
+        health.Heal(10);
 
         MessagePopUp.CreateRaw(
             transform.position + Vector3.up,
-            "<color=#B16CFF>+1 Damage</color>"
+            "<color=#B16CFF>+1 Damage\n+10 HP</color>"
         );
 
         consumed = true;

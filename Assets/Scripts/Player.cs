@@ -149,10 +149,11 @@ public class Player : MonoBehaviour
             $"Recoil: {(weaponController != null ? weaponController.RecoilForce.ToString("0.##") : "-")}\n" +
             $"Size: {playerSize:0.##}\n" +
             $"Poisonous: {(weaponController != null ? weaponController.Poisonous.ToString() : "-")}\n" +
-            $"Explosion: {(weaponController != null ? weaponController.ExplosionChance.ToString() : "-")}\u00A0%";
-
-        string thirdColumnText =
+            $"Explosion: {(weaponController != null ? weaponController.ExplosionChance.ToString() : "-")}\u00A0%" +
             $"Homing: {(weaponController != null ? weaponController.HomingChance.ToString() : "-")}\u00A0%";
+
+
+        string thirdColumnText = "";
 
         if (statsText != null && lastStatsText != firstColumnText)
         {
