@@ -3,16 +3,14 @@ using UnityEngine;
 
 public class Health : MonoBehaviour
 {
-    [Header("Health")]
-    [SerializeField] private int maxHealth = 5;
+    [Header("Health")] [SerializeField] private int maxHealth = 5;
     [SerializeField] private bool isPlayer = false;
     [SerializeField] private float popupHeightOffset = 0.5f;
 
-    [Header("Health Bar")]
-    [SerializeField] private SpriteRenderer healthBarSprite;
+    [Header("Health Bar")] [SerializeField]
+    private SpriteRenderer healthBarSprite;
 
-    [Header("Poison")]
-    [SerializeField] private TMP_Text poisonStacksText;
+    [Header("Poison")] [SerializeField] private TMP_Text poisonStacksText;
     [SerializeField] private float poisonTickInterval = 1f;
 
     private int currentHealth;
@@ -23,7 +21,7 @@ public class Health : MonoBehaviour
 
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
-    public float HealthNormalized => maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
+    public float HealthNormalized => maxHealth > 0 ? (float) currentHealth / maxHealth : 0f;
     public int PoisonStacks => poisonStacks;
 
     private void Awake()
@@ -182,6 +180,12 @@ public class Health : MonoBehaviour
     {
         if (!isPlayer)
         {
+            gameObject.tag = "Untagged";
+
+            Collider2D[] colliders = GetComponentsInChildren<Collider2D>();
+            for (int i = 0; i < colliders.Length; i++)
+                colliders[i].enabled = false;
+
             TrySpawnExplosionBullets();
 
             if (PillManager.Instance != null)
@@ -207,7 +211,7 @@ public class Health : MonoBehaviour
         if (Random.Range(0, 100) >= weapon.ExplosionChance)
             return;
 
-        const int bulletCount = 9;
+        int bulletCount = 9 * Mathf.Max(1, weapon.ProjectilesPerShot);
         float angleStep = 360f / bulletCount;
 
         for (int i = 0; i < bulletCount; i++)
@@ -216,15 +220,30 @@ public class Health : MonoBehaviour
             float radians = angle * Mathf.Deg2Rad;
             Vector2 direction = new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)).normalized;
 
-            GameObject bullet = Instantiate(weapon.BulletPrefab, transform.position, Quaternion.Euler(0f, 0f, angle));
+            GameObject bullet = Instantiate(
+                weapon.BulletPrefab,
+                transform.position,
+                Quaternion.Euler(0f, 0f, angle)
+            );
 
             Bullet bulletComponent = bullet.GetComponent<Bullet>();
             if (bulletComponent != null)
-                bulletComponent.Initialize(Bullet.BulletOwner.Player, weapon.Damage, 0, false, weapon.BulletSpeed);
+            {
+                bool isHoming = Random.Range(0, 100) < weapon.HomingChance;
+
+                bulletComponent.Initialize(
+                    Bullet.BulletOwner.Player,
+                    weapon.Damage,
+                    weapon.Poisonous,
+                    isHoming,
+                    weapon.BulletSpeed
+                );
+            }
 
             Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
             if (bulletRb != null)
                 bulletRb.velocity = direction * weapon.BulletSpeed;
         }
     }
+    
 }

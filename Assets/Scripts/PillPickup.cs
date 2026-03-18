@@ -14,7 +14,9 @@ public class PillPickup : MonoBehaviour
         Recoil = 5,
         PlayerSize = 6,
         Poisonous = 7,
-        ProjectilesPerShot = 8
+        ProjectilesPerShot = 8,
+        ExplosionChance = 9,
+        HomingChance = 10
     }
 
     private EffectType positiveEffect;
@@ -234,6 +236,22 @@ public class PillPickup : MonoBehaviour
 
                 return weapon.ProjectilesPerShot > 1;
             }
+            
+            case EffectType.ExplosionChance:
+            {
+                if (positive)
+                    return weapon.ExplosionChance < 100;
+
+                return weapon.ExplosionChance > 0;
+            }
+
+            case EffectType.HomingChance:
+            {
+                if (positive)
+                    return weapon.HomingChance < 100;
+
+                return weapon.HomingChance > 0;
+            }
         }
 
         return false;
@@ -303,7 +321,7 @@ public class PillPickup : MonoBehaviour
                 }
                 else
                 {
-                    float maxReduction = player.MoveSpeed - 3f;
+                    float maxReduction = player.MoveSpeed - 4f;
                     int realAmount = Mathf.Min(amount, Mathf.FloorToInt(maxReduction));
                     if (realAmount <= 0)
                         return null;
@@ -427,6 +445,54 @@ public class PillPickup : MonoBehaviour
 
                     weapon.AddProjectilesPerShot(-amount);
                     return $"-{amount} Projectiles";
+                }
+            }
+            
+            case EffectType.ExplosionChance:
+            {
+                int amount = positive ? Random.Range(5, 16) : Random.Range(5, 11);
+
+                if (positive)
+                {
+                    int realAmount = Mathf.Min(amount, 100 - weapon.ExplosionChance);
+                    if (realAmount <= 0)
+                        return null;
+
+                    weapon.AddExplosionChance(realAmount);
+                    return $"+{realAmount}% Explosion";
+                }
+                else
+                {
+                    int realAmount = Mathf.Min(amount, weapon.ExplosionChance);
+                    if (realAmount <= 0)
+                        return null;
+
+                    weapon.AddExplosionChance(-realAmount);
+                    return $"-{realAmount}% Explosion";
+                }
+            }
+
+            case EffectType.HomingChance:
+            {
+                int amount = positive ? Random.Range(5, 16) : Random.Range(5, 11);
+
+                if (positive)
+                {
+                    int realAmount = Mathf.Min(amount, 100 - weapon.HomingChance);
+                    if (realAmount <= 0)
+                        return null;
+
+                    weapon.AddHomingChance(realAmount);
+                    return $"+{realAmount}% Homing";
+                }
+                else
+                {
+                    int realAmount = Mathf.Min(amount, weapon.HomingChance);
+                    if (realAmount <= 0)
+                        return null;
+
+                    weapon.AddHomingChance(-realAmount);
+                    return $"-{realAmount}% Homing";
                 }
             }
         }

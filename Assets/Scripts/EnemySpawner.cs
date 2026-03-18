@@ -12,16 +12,24 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] private int minEnemiesPerWave = 3;
     [SerializeField] private int maxEnemiesPerWave = 5;
     [SerializeField] public float minDistanceFromPlayer = 5f;
-    
+
     private float waveTimer;
     private int waveNumber = 0;
+    private bool specialPillSpawnedForThisWaveEnd = false;
 
     private void Update()
     {
         if (HasAliveEnemies())
         {
+            specialPillSpawnedForThisWaveEnd = false;
             waveTimer = 0f;
             return;
+        }
+
+        if (!specialPillSpawnedForThisWaveEnd && waveNumber > 0)
+        {
+            SpawnSpecialPillInCenter();
+            specialPillSpawnedForThisWaveEnd = true;
         }
 
         waveTimer += Time.deltaTime;
@@ -53,6 +61,17 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
+    private void SpawnSpecialPillInCenter()
+    {
+        if (PillManager.Instance == null)
+            return;
+
+        Vector3 centerPosition = spawnZone != null ? spawnZone.bounds.center : Vector3.zero;
+        centerPosition.z = 0f;
+
+        PillManager.Instance.SpawnSpecialPill(centerPosition);
+    }
+
     private void TrySpawnEnemy()
     {
         Bounds bounds = spawnZone.bounds;
@@ -72,7 +91,7 @@ public class EnemySpawner : MonoBehaviour
             Health enemyHealth = enemyObj.GetComponent<Health>();
             if (enemyHealth != null)
             {
-                enemyHealth.AddMaxHealth(waveNumber*3);
+                enemyHealth.AddMaxHealth(waveNumber * 3);
             }
 
             return;

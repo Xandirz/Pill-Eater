@@ -21,6 +21,8 @@ public class Bullet : MonoBehaviour
     private bool isHoming;
     private float moveSpeed;
     private float currentLifeTime;
+    private Transform homingTarget;
+    private Rigidbody2D rb;
 
     public BulletOwner Owner => owner;
     public int Damage => damage;
@@ -45,11 +47,17 @@ public class Bullet : MonoBehaviour
         isHoming = homing;
         moveSpeed = speed;
         currentLifeTime = isHoming ? homingLifeTime : lifeTime;
+
+        if (isHoming && (owner == BulletOwner.Player || owner == BulletOwner.Reflected))
+            homingTarget = FindClosestEnemy();
+
         UpdateBulletColor();
     }
 
     private void Awake()
     {
+        rb = GetComponent<Rigidbody2D>();
+
         if (bulletSpriteRenderer == null)
             bulletSpriteRenderer = GetComponentInChildren<SpriteRenderer>();
     }
@@ -63,7 +71,7 @@ public class Bullet : MonoBehaviour
         UpdateBulletColor();
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         if (!isHoming)
             return;
@@ -71,25 +79,35 @@ public class Bullet : MonoBehaviour
         if (owner != BulletOwner.Player && owner != BulletOwner.Reflected)
             return;
 
-        Transform target = FindClosestEnemy();
-        if (target == null)
-            return;
-
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb == null)
             return;
 
+        if (homingTarget == null || !homingTarget.gameObject.activeInHierarchy)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Vector2 toTarget = (Vector2)homingTarget.position - rb.position;
+        if (toTarget.sqrMagnitude <= 0.0001f)
+            return;
+
+        Vector2 desiredDirection = toTarget.normalized;
+
         Vector2 currentDirection = rb.velocity.sqrMagnitude > 0.001f
             ? rb.velocity.normalized
-            : ((Vector2)target.position - (Vector2)transform.position).normalized;
+            : desiredDirection;
 
-        Vector2 desiredDirection = ((Vector2)target.position - (Vector2)transform.position).normalized;
-        Vector2 newDirection = Vector2.Lerp(currentDirection, desiredDirection, homingTurnSpeed * Time.deltaTime).normalized;
+        Vector2 newDirection = Vector2.Lerp(
+            currentDirection,
+            desiredDirection,
+            homingTurnSpeed * Time.fixedDeltaTime
+        ).normalized;
 
         rb.velocity = newDirection * moveSpeed;
 
         float angle = Mathf.Atan2(newDirection.y, newDirection.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.Euler(0f, 0f, angle);
+        rb.MoveRotation(angle);
     }
 
     private Transform FindClosestEnemy()
@@ -120,10 +138,12 @@ public class Bullet : MonoBehaviour
         if (bulletSpriteRenderer == null)
             return;
 
+        Color homingPurple = new Color(0.7f, 0.35f, 1f, 1f);
+
         switch (owner)
         {
             case BulletOwner.Player:
-                bulletSpriteRenderer.color = isHoming ? new Color(0.6f, 1f, 0.6f, 1f) : Color.white;
+                bulletSpriteRenderer.color = isHoming ? homingPurple : Color.white;
                 break;
 
             case BulletOwner.Enemy:
@@ -131,7 +151,7 @@ public class Bullet : MonoBehaviour
                 break;
 
             case BulletOwner.Reflected:
-                bulletSpriteRenderer.color = isHoming ? new Color(1f, 1f, 0.5f, 1f) : Color.yellow;
+                bulletSpriteRenderer.color = isHoming ? homingPurple : Color.yellow;
                 break;
         }
     }
@@ -139,9 +159,12 @@ public class Bullet : MonoBehaviour
     public void ReflectFromPlayerBullet()
     {
         owner = BulletOwner.Reflected;
+
+        if (isHoming)
+            homingTarget = FindClosestEnemy();
+
         UpdateBulletColor();
 
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb != null)
             rb.velocity = -rb.velocity;
     }
