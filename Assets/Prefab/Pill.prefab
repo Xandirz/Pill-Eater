@@ -143,7 +143,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 050072f97e604dd8bd4138156f2e2ae6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  minHeal: 1
-  maxHeal: 10
-  popupHeightOffset: 0.75
-  pillNameText: Heal Pill
+  spriteRenderer: {fileID: 6302421577509409794}
+  pillSprites:
+  - {fileID: 21300000, guid: c7d2c029692a43442905f39152817f24, type: 3}
+  - {fileID: 21300000, guid: d34514424eaab3b4d84bd6ca274c5f0c, type: 3}
+  - {fileID: 21300000, guid: b7b5cffccc79a924ebade67a47f21d8e, type: 3}
+  - {fileID: 21300000, guid: c006145f45ede0f4b9a3e5026e54c012, type: 3}
+  - {fileID: 21300000, guid: 63f64230d3421cc41a0a812bf6d618c3, type: 3}
+  - {fileID: 21300000, guid: 011da9d305ee4a6438e89041e6eb0d9c, type: 3}
+  - {fileID: 21300000, guid: cfd32c9710e3eac40abab1b8faf1b85e, type: 3}
+  - {fileID: 21300000, guid: fdcfe5bfa99b36b4092a418da8e3e9d7, type: 3}

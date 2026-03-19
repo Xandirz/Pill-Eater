@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-
+using System.Collections.Generic;
 [RequireComponent(typeof(Collider2D))]
 public class PillPickup : MonoBehaviour
 {
@@ -16,9 +16,13 @@ public class PillPickup : MonoBehaviour
         Poisonous = 7,
         ProjectilesPerShot = 8,
         ExplosionChance = 9,
-        HomingChance = 10
+        HomingChance = 10,
+        BulletSize = 11,
+        MaxHealth = 12
     }
-
+    [Header("Visual")]
+    [SerializeField] private SpriteRenderer spriteRenderer;
+    [SerializeField] private List<Sprite> pillSprites = new();
     private EffectType positiveEffect;
     private EffectType negativeEffect;
     private bool consumed;
@@ -60,7 +64,19 @@ public class PillPickup : MonoBehaviour
         value = Mathf.Clamp(value, min, max);
         return (EffectType)value;
     }
+    private void Awake()
+    {
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
 
+        SetRandomSprite();
+    }private void SetRandomSprite()
+    {
+        if (spriteRenderer == null || pillSprites == null || pillSprites.Count == 0)
+            return;
+
+        spriteRenderer.sprite = pillSprites[Random.Range(0, pillSprites.Count)];
+    }
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (consumed || !other.CompareTag("Player"))
@@ -84,6 +100,7 @@ public class PillPickup : MonoBehaviour
         positiveEffect = EnsureValidEffect(positiveEffect, true, player, health, weapon, null);
         negativeEffect = EnsureValidEffect(negativeEffect, false, player, health, weapon, positiveEffect);
 
+            player.ChangeHeadRandomly();
         string positiveText = ApplyEffect(positiveEffect, true, player, health, weapon);
         string negativeText = ApplyEffect(negativeEffect, false, player, health, weapon);
 
@@ -189,7 +206,7 @@ public class PillPickup : MonoBehaviour
                 if (positive)
                     return true;
 
-                return player.MoveSpeed > 4f;
+                return player.MoveSpeed > 5f;
             }
 
             case EffectType.FireRate:
@@ -197,7 +214,7 @@ public class PillPickup : MonoBehaviour
                 if (positive)
                     return true;
 
-                return weapon.ShotsPerSecond > 1f;
+                return weapon.ShotsPerSecond > 2f;
             }
 
             case EffectType.BulletSpeed:
@@ -251,6 +268,21 @@ public class PillPickup : MonoBehaviour
                     return weapon.HomingChance < 100;
 
                 return weapon.HomingChance > 0;
+            }
+            case EffectType.BulletSize:
+            {
+                if (positive)
+                    return weapon.BulletSize < 3f;
+
+                return weapon.BulletSize > 0.5f;
+            }
+
+            case EffectType.MaxHealth:
+            {
+                if (positive)
+                    return health.MaxHealth < 100;
+
+                return health.MaxHealth > 20;
             }
         }
 
@@ -321,7 +353,7 @@ public class PillPickup : MonoBehaviour
                 }
                 else
                 {
-                    float maxReduction = player.MoveSpeed - 4f;
+                    float maxReduction = player.MoveSpeed -5f;
                     int realAmount = Mathf.Min(amount, Mathf.FloorToInt(maxReduction));
                     if (realAmount <= 0)
                         return null;
@@ -342,7 +374,7 @@ public class PillPickup : MonoBehaviour
                 }
                 else
                 {
-                    float maxReduction = weapon.ShotsPerSecond - 0.5f;
+                    float maxReduction = weapon.ShotsPerSecond - 2f;
                     int realAmount = Mathf.Min(amount, Mathf.FloorToInt(maxReduction));
                     if (realAmount <= 0)
                         return null;
@@ -493,6 +525,55 @@ public class PillPickup : MonoBehaviour
 
                     weapon.AddHomingChance(-realAmount);
                     return $"-{realAmount}% Homing";
+                }
+            }
+            case EffectType.BulletSize:
+            {
+                float amount = 0.25f;
+
+                if (positive)
+                {
+                    float realAmount = Mathf.Min(amount, 3f - weapon.BulletSize);
+                    if (realAmount <= 0f)
+                        return null;
+
+                    weapon.AddBulletSize(realAmount);
+                    return $"+{realAmount:0.##} Bullet Size";
+                }
+                else
+                {
+                    float realAmount = Mathf.Min(amount, weapon.BulletSize - 1f);
+                    if (realAmount <= 0f)
+                        return null;
+
+                    weapon.AddBulletSize(-realAmount);
+                    return $"-{realAmount:0.##} Bullet Size";
+                }
+            }
+
+            case EffectType.MaxHealth:
+            {
+                int[] steps = { 5, 10, 15, 20 };
+                int amount = steps[Random.Range(0, steps.Length)];
+
+                if (positive)
+                {
+                    int realAmount = Mathf.Min(amount, 100 - health.MaxHealth);
+                    if (realAmount <= 0)
+                        return null;
+
+                    health.AddMaxHealth(realAmount);
+                    health.FullHeal();
+                    return $"+{realAmount} Max HP\nFull Heal";
+                }
+                else
+                {
+                    int realAmount = Mathf.Min(amount, health.MaxHealth - 20);
+                    if (realAmount <= 0)
+                        return null;
+
+                    health.AddMaxHealth(-realAmount);
+                    return $"-{realAmount} Max HP";
                 }
             }
         }

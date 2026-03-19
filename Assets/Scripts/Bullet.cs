@@ -14,7 +14,6 @@ public class Bullet : MonoBehaviour
     [SerializeField] private float homingLifeTime = 10f;
     [SerializeField] private float homingTurnSpeed = 8f;
     [SerializeField] private SpriteRenderer bulletSpriteRenderer;
-
     private BulletOwner owner;
     private int damage;
     private int poisonStacksToApply;
@@ -23,7 +22,7 @@ public class Bullet : MonoBehaviour
     private float currentLifeTime;
     private Transform homingTarget;
     private Rigidbody2D rb;
-
+    private float bulletSize = 1f;
     public BulletOwner Owner => owner;
     public int Damage => damage;
     public int PoisonStacksToApply => poisonStacksToApply;
@@ -36,17 +35,20 @@ public class Bullet : MonoBehaviour
 
     public void Initialize(BulletOwner bulletOwner, int bulletDamage, bool homing, float speed)
     {
-        Initialize(bulletOwner, bulletDamage, 0, homing, speed);
+        Initialize(bulletOwner, bulletDamage, 0, homing, speed, 1f);
     }
 
-    public void Initialize(BulletOwner bulletOwner, int bulletDamage, int poisonStacks, bool homing = false, float speed = 12f)
+    public void Initialize(BulletOwner bulletOwner, int bulletDamage, int poisonStacks, bool homing = false, float speed = 12f, float size = 1f)
     {
         owner = bulletOwner;
         damage = bulletDamage;
         poisonStacksToApply = poisonStacks;
         isHoming = homing;
         moveSpeed = speed;
+        bulletSize = Mathf.Clamp(size, 1f, 3f);
         currentLifeTime = isHoming ? homingLifeTime : lifeTime;
+
+        transform.localScale = Vector3.one * bulletSize;
 
         if (isHoming && (owner == BulletOwner.Player || owner == BulletOwner.Reflected))
             homingTarget = FindClosestEnemy();

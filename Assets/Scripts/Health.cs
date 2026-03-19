@@ -7,26 +7,34 @@ public class Health : MonoBehaviour
     [SerializeField] private bool isPlayer = false;
     [SerializeField] private float popupHeightOffset = 0.5f;
 
+    [Header("Game Over")]
+    [SerializeField] private GameObject gameOverScreen;
+
     [Header("Health Bar")] [SerializeField]
     private SpriteRenderer healthBarSprite;
 
     [Header("Poison")] [SerializeField] private TMP_Text poisonStacksText;
     [SerializeField] private float poisonTickInterval = 1f;
 
-    private int currentHealth;
+    public int currentHealth;
     private Vector3 healthBarStartScale;
 
     private int poisonStacks;
     private float poisonTickTimer;
+    private bool isDead;
 
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
-    public float HealthNormalized => maxHealth > 0 ? (float) currentHealth / maxHealth : 0f;
+    public float HealthNormalized => maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
     public int PoisonStacks => poisonStacks;
+    public bool IsDead => isDead;
 
     private void Awake()
     {
         currentHealth = maxHealth;
+
+        if (gameOverScreen != null)
+            gameOverScreen.SetActive(false);
 
         if (!isPlayer && healthBarSprite != null)
         {
@@ -60,12 +68,27 @@ public class Health : MonoBehaviour
     public void AddMaxHealth(int amount)
     {
         maxHealth += amount;
-        currentHealth += amount;
+        maxHealth = Mathf.Clamp(maxHealth, 20, 100);
+
+        if (currentHealth > maxHealth)
+            currentHealth = maxHealth;
 
         if (!isPlayer)
             UpdateHealthBar();
     }
+    public void FullHeal()
+    {
+        currentHealth = maxHealth;
 
+        MessagePopUp.Create(
+            transform.position + Vector3.up * popupHeightOffset,
+            "Full Heal",
+            MessagePopUp.Style.Info
+        );
+
+        if (!isPlayer)
+            UpdateHealthBar();
+    }
     public void AddPoisonStacks(int amount)
     {
         if (amount <= 0)
@@ -101,7 +124,7 @@ public class Health : MonoBehaviour
 
     public void TakeDamage(int damage, MessagePopUp.Style popupStyle)
     {
-        if (damage <= 0 || currentHealth <= 0)
+        if (damage <= 0 || currentHealth <= 0 || isDead)
             return;
 
         currentHealth -= damage;
@@ -124,6 +147,9 @@ public class Health : MonoBehaviour
 
     public void Heal(int amount)
     {
+        if (isDead)
+            return;
+
         currentHealth += amount;
 
         if (currentHealth > maxHealth)
@@ -178,19 +204,34 @@ public class Health : MonoBehaviour
 
     private void Die()
     {
-        if (!isPlayer)
+        isDead = true;
+
+        if (isPlayer)
         {
-            gameObject.tag = "Untagged";
+            if (gameOverScreen != null)
+                gameOverScreen.SetActive(true);
 
             Collider2D[] colliders = GetComponentsInChildren<Collider2D>();
             for (int i = 0; i < colliders.Length; i++)
                 colliders[i].enabled = false;
 
-            TrySpawnExplosionBullets();
+            Rigidbody2D rb = GetComponent<Rigidbody2D>();
+            if (rb != null)
+                rb.velocity = Vector2.zero;
 
-            if (PillManager.Instance != null)
-                PillManager.Instance.SpawnRandomPill(transform.position);
+            return;
         }
+
+        gameObject.tag = "Untagged";
+
+        Collider2D[] enemyColliders = GetComponentsInChildren<Collider2D>();
+        for (int i = 0; i < enemyColliders.Length; i++)
+            enemyColliders[i].enabled = false;
+
+        TrySpawnExplosionBullets();
+
+        if (PillManager.Instance != null)
+            PillManager.Instance.SpawnRandomPill(transform.position);
 
         Destroy(gameObject);
     }
@@ -236,7 +277,8 @@ public class Health : MonoBehaviour
                     weapon.Damage,
                     weapon.Poisonous,
                     isHoming,
-                    weapon.BulletSpeed
+                    weapon.BulletSpeed,
+                    weapon.BulletSize
                 );
             }
 
@@ -245,5 +287,4 @@ public class Health : MonoBehaviour
                 bulletRb.velocity = direction * weapon.BulletSpeed;
         }
     }
-    
 }

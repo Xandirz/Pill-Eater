@@ -1,16 +1,15 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private GameObject enemyPrefab;
+    [SerializeField] private List<GameObject> enemyPrefabs = new();
     [SerializeField] private Transform player;
     [SerializeField] private BoxCollider2D spawnZone;
 
     [Header("Wave Settings")]
     [SerializeField] public float waveInterval = 5f;
-    [SerializeField] private int minEnemiesPerWave = 3;
-    [SerializeField] private int maxEnemiesPerWave = 5;
     [SerializeField] public float minDistanceFromPlayer = 5f;
 
     private float waveTimer;
@@ -48,16 +47,68 @@ public class EnemySpawner : MonoBehaviour
 
     private void SpawnWave()
     {
-        if (enemyPrefab == null || player == null || spawnZone == null)
+        if (enemyPrefabs == null || enemyPrefabs.Count == 0 || player == null || spawnZone == null)
             return;
 
         waveNumber++;
 
-        int enemiesToSpawn = Random.Range(minEnemiesPerWave, maxEnemiesPerWave + 1);
+        int stage = GetWaveStage(waveNumber);
+        int unlockedEnemyTypes = Mathf.Min(stage, enemyPrefabs.Count);
 
-        for (int i = 0; i < enemiesToSpawn; i++)
+        for (int enemyTypeIndex = 0; enemyTypeIndex < unlockedEnemyTypes; enemyTypeIndex++)
         {
-            TrySpawnEnemy();
+            GameObject enemyPrefab = enemyPrefabs[enemyTypeIndex];
+            if (enemyPrefab == null)
+                continue;
+
+            Vector2Int spawnRange = GetSpawnCountRange(stage, enemyTypeIndex);
+            int enemiesToSpawn = Random.Range(spawnRange.x, spawnRange.y + 1);
+
+            for (int i = 0; i < enemiesToSpawn; i++)
+            {
+                TrySpawnEnemy(enemyPrefab);
+            }
+        }
+    }
+
+    private int GetWaveStage(int currentWave)
+    {
+        // 1-5 = stage 1
+        // 6-10 = stage 2
+        // 11-15 = stage 3
+        // 16-20 = stage 4
+        return ((currentWave - 1) / 5) + 1;
+    }
+
+    private Vector2Int GetSpawnCountRange(int stage, int enemyTypeIndex)
+    {
+        // enemyTypeIndex:
+        // 0 = первый враг
+        // 1 = второй враг
+        // 2 = третий враг
+        // 3 = четвертый враг
+        //
+        // Прогрессия:
+        // stage 1: enemy 1 -> 3-5
+        // stage 2: enemy 1 -> 4-6, enemy 2 -> 1-2
+        // stage 3: enemy 1 -> 5-7, enemy 2 -> 2-3, enemy 3 -> 1-2
+        // stage 4: enemy 1 -> 6-8, enemy 2 -> 3-4, enemy 3 -> 2-3, enemy 4 -> 1-2
+
+        if (enemyTypeIndex == 0)
+        {
+            int min = 3 + (stage - 1);
+            int max = 5 + (stage - 1);
+            return new Vector2Int(min, max);
+        }
+        else
+        {
+            int min = stage - enemyTypeIndex;
+            int max = min + 1;
+
+            min = Mathf.Max(1, min);
+            max = Mathf.Max(min, max);
+
+            return new Vector2Int(min, max);
         }
     }
 
@@ -72,8 +123,11 @@ public class EnemySpawner : MonoBehaviour
         PillManager.Instance.SpawnSpecialPill(centerPosition);
     }
 
-    private void TrySpawnEnemy()
+    private void TrySpawnEnemy(GameObject prefabToSpawn)
     {
+        if (prefabToSpawn == null)
+            return;
+
         Bounds bounds = spawnZone.bounds;
 
         for (int i = 0; i < 20; i++)
@@ -86,12 +140,13 @@ public class EnemySpawner : MonoBehaviour
             if (Vector2.Distance(randomPos, player.position) < minDistanceFromPlayer)
                 continue;
 
-            GameObject enemyObj = Instantiate(enemyPrefab, randomPos, Quaternion.identity);
+            GameObject enemyObj = Instantiate(prefabToSpawn, randomPos, Quaternion.identity);
 
             Health enemyHealth = enemyObj.GetComponent<Health>();
             if (enemyHealth != null)
             {
                 enemyHealth.AddMaxHealth(waveNumber * 3);
+                enemyHealth.FullHeal();
             }
 
             return;

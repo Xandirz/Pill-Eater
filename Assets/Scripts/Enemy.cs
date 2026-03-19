@@ -35,7 +35,7 @@ public class Enemy : MonoBehaviour
     [Header("Weapon")]
     [SerializeField] private Transform weaponTransform;
     [SerializeField] private Transform firePoint;
-
+    [SerializeField] private float weaponDistanceFromEnemy = 0.75f;
     [Header("Shooting")]
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private float bulletSpeed = 10f;
@@ -43,7 +43,6 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float shootRange = 7f;
     [SerializeField] private int damage = 1;
 
-    private Vector3 firePointStartLocalPosition;
     private Rigidbody2D rb;
     private Vector2 movement;
     private Vector2 aimDirection = Vector2.left;
@@ -67,10 +66,7 @@ public class Enemy : MonoBehaviour
         if (weaponTransform == null)
             Debug.LogError("Weapon Transform is not assigned!", this);
 
-        if (firePoint == null)
-            Debug.LogError("Fire Point is not assigned!", this);
-        else
-            firePointStartLocalPosition = firePoint.localPosition;
+     
 
         if (bulletPrefab == null)
             Debug.LogError("Bullet Prefab is not assigned!", this);
@@ -177,15 +173,7 @@ public class Enemy : MonoBehaviour
 
         if (spriteRenderer != null)
             spriteRenderer.flipX = !faceLeft;
-
-        if (firePoint != null)
-        {
-            Vector3 pos = firePointStartLocalPosition;
-            pos.x = Mathf.Abs(firePointStartLocalPosition.x) * (faceLeft ? -1f : 1f);
-            firePoint.localPosition = pos;
-        }
     }
-
     private void HandleWalkAnimation()
     {
         if (spriteRenderer == null)
@@ -215,7 +203,12 @@ public class Enemy : MonoBehaviour
         if (weaponTransform == null)
             return;
 
-        Vector2 weaponDirection = aimDirection.sqrMagnitude > 0.001f ? aimDirection.normalized : Vector2.left;
+        Vector2 weaponDirection = aimDirection.sqrMagnitude > 0.001f
+            ? aimDirection.normalized
+            : Vector2.left;
+
+        weaponTransform.position = (Vector2)transform.position + weaponDirection * weaponDistanceFromEnemy;
+
         float angle = Mathf.Atan2(weaponDirection.y, weaponDirection.x) * Mathf.Rad2Deg;
         weaponTransform.rotation = Quaternion.Euler(0f, 0f, angle);
     }

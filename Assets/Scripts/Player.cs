@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
-
+using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 [RequireComponent(typeof(Rigidbody2D))]
 public class Player : MonoBehaviour
 {
@@ -9,10 +10,16 @@ public class Player : MonoBehaviour
     private Vector2 externalVelocity;
     [SerializeField] private float externalVelocityDecay = 8f;
 
+    [Header("Restart")]
+    [SerializeField] private float restartHoldDuration = 2f;
+    private float restartHoldTimer;
+    [SerializeField] private BoxCollider2D mapBounds;
+    [SerializeField] private float boundsPadding = 0.25f;
     [Header("Body Parts")]
     [SerializeField] private SpriteRenderer bodyRenderer;
     [SerializeField] private SpriteRenderer headRenderer;
-
+    [Header("Head Sprites")]
+    [SerializeField] private List<Sprite> playerHeads = new();
     [Header("Body Sprites")]
     [SerializeField] private Sprite idleBodySprite;
     [SerializeField] private Sprite walkBodySprite1;
@@ -27,6 +34,7 @@ public class Player : MonoBehaviour
     [SerializeField] private TextMeshProUGUI statsTextThirdColumn;
     [SerializeField] private Health health;
     [SerializeField] private WeaponController weaponController;
+
     [Header("Size")]
     [SerializeField] private float playerSize = 1f;
     [SerializeField] private float minPlayerSize = 0.5f;
@@ -71,6 +79,15 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
+        HandleRestartInput();
+        if (health != null && health.IsDead)
+        {
+            
+            movement = Vector2.zero;
+            UpdateStatsText();
+            return;
+        }
+
         HandleInput();
         HandleFlip();
         HandleWalkAnimation();
@@ -79,15 +96,70 @@ public class Player : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (health != null && health.IsDead)
+        {
+            rb.velocity = Vector2.zero;
+            externalVelocity = Vector2.zero;
+            return;
+        }
+
         rb.velocity = movement * moveSpeed + externalVelocity;
         externalVelocity = Vector2.Lerp(externalVelocity, Vector2.zero, externalVelocityDecay * Time.fixedDeltaTime);
-    }
+        ClampInsideMapBounds();
 
+    }
+    private void ClampInsideMapBounds()
+    {
+        if (mapBounds == null)
+            return;
+
+        Bounds bounds = mapBounds.bounds;
+        Vector3 pos = transform.position;
+
+        float clampedX = Mathf.Clamp(pos.x, bounds.min.x + boundsPadding, bounds.max.x - boundsPadding);
+        float clampedY = Mathf.Clamp(pos.y, bounds.min.y + boundsPadding, bounds.max.y - boundsPadding);
+
+        bool hitHorizontalEdge = !Mathf.Approximately(pos.x, clampedX);
+        bool hitVerticalEdge = !Mathf.Approximately(pos.y, clampedY);
+
+        pos.x = clampedX;
+        pos.y = clampedY;
+        transform.position = pos;
+
+        if (hitHorizontalEdge)
+        {
+            rb.velocity = new Vector2(0f, rb.velocity.y);
+            externalVelocity.x = 0f;
+        }
+
+        if (hitVerticalEdge)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, 0f);
+            externalVelocity.y = 0f;
+        }
+    }
     private void HandleInput()
     {
         movement.x = Input.GetAxisRaw("Horizontal");
         movement.y = Input.GetAxisRaw("Vertical");
         movement = movement.normalized;
+    }
+
+    private void HandleRestartInput()
+    {
+        if (Input.GetKey(KeyCode.R))
+        {
+            restartHoldTimer += Time.deltaTime;
+
+            if (restartHoldTimer >= restartHoldDuration)
+            {
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            }
+        }
+        else
+        {
+            restartHoldTimer = 0f;
+        }
     }
 
     private void HandleFlip()
@@ -149,12 +221,12 @@ public class Player : MonoBehaviour
             $"Recoil: {(weaponController != null ? weaponController.RecoilForce.ToString("0.##") : "-")}\n" +
             $"Size: {playerSize:0.##}\n" +
             $"Poisonous: {(weaponController != null ? weaponController.Poisonous.ToString() : "-")}\n" +
-            $"Explosion: {(weaponController != null ? weaponController.ExplosionChance.ToString() : "-")}\u00A0%" +
-            $"Homing: {(weaponController != null ? weaponController.HomingChance.ToString() : "-")}\u00A0%";
+            $"Explosion: {(weaponController != null ? weaponController.ExplosionChance.ToString() : "-")}%\n" +
+            $"Homing: {(weaponController != null ? weaponController.HomingChance.ToString() : "-")}%";
 
-
-        string thirdColumnText = "";
-
+        string thirdColumnText =
+            $"Bullet Size: {(weaponController != null ? weaponController.BulletSize.ToString("0.##") : "-")}";
+        
         if (statsText != null && lastStatsText != firstColumnText)
         {
             statsText.text = firstColumnText;
@@ -167,12 +239,35 @@ public class Player : MonoBehaviour
             lastStatsTextSecondColumn = secondColumnText;
         }
 
-        if (statsTextThirdColumn != null)
+        if (statsTextThirdColumn != null && lastStatsTextThirdColumn != thirdColumnText)
         {
             statsTextThirdColumn.text = thirdColumnText;
+            lastStatsTextThirdColumn = thirdColumnText;
         }
     }
+    public void ChangeHeadRandomly()
+    {
+        if (headRenderer == null || playerHeads == null || playerHeads.Count == 0)
+            return;
 
+        if (playerHeads.Count == 1)
+        {
+            headRenderer.sprite = playerHeads[0];
+            return;
+        }
+
+        Sprite currentHead = headRenderer.sprite;
+        Sprite newHead = currentHead;
+
+        int safety = 0;
+        while (newHead == currentHead && safety < 20)
+        {
+            newHead = playerHeads[Random.Range(0, playerHeads.Count)];
+            safety++;
+        }
+
+        headRenderer.sprite = newHead;
+    }
     public void AddExternalVelocity(Vector2 velocity)
     {
         externalVelocity += velocity;

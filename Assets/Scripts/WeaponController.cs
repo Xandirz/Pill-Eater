@@ -6,7 +6,7 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private Transform player;
     [SerializeField] private Camera mainCamera;
     [SerializeField] private Transform firePoint;
-
+    [SerializeField] private float bulletSize = 1f;
     [Header("Position")]
     [SerializeField] private float distanceFromPlayer = 0.75f;
 
@@ -31,6 +31,7 @@ public class WeaponController : MonoBehaviour
     public float RecoilForce => recoilForce;
     public float BulletSpeed => bulletSpeed;
     public float ShootCooldown => shootCooldown;
+    public float BulletSize => bulletSize;
     public float ShotsPerSecond => shootCooldown > 0f ? 1f / shootCooldown : 0f;
     public int Damage => damage;
     public int Poisonous => poisonous;
@@ -63,6 +64,7 @@ public class WeaponController : MonoBehaviour
         poisonous = Mathf.Max(0, poisonous);
         damage = Mathf.Max(1, damage);
         bulletSpeed = Mathf.Max(3f, bulletSpeed);
+        bulletSize = Mathf.Clamp(bulletSize, 1f, 3f);
     }
 
     private void Update()
@@ -139,7 +141,8 @@ public class WeaponController : MonoBehaviour
                     damage,
                     poisonous,
                     isHoming,
-                    bulletSpeed
+                    bulletSpeed,
+                    bulletSize
                 );
             }
 
@@ -151,7 +154,11 @@ public class WeaponController : MonoBehaviour
         if (Mathf.Abs(recoilForce) > 0.001f)
             ApplyRecoil();
     }
-
+    public void AddBulletSize(float amount)
+    {
+        bulletSize += amount;
+        bulletSize = Mathf.Clamp(bulletSize, 1f, 3f);
+    }
     public void AddDamage(int amount)
     {
         damage += amount;
