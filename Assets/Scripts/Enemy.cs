@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -36,6 +37,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private Transform weaponTransform;
     [SerializeField] private Transform firePoint;
     [SerializeField] private float weaponDistanceFromEnemy = 0.75f;
+
     [Header("Shooting")]
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private float bulletSpeed = 10f;
@@ -43,6 +45,14 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float shootRange = 7f;
     [SerializeField] private int damage = 1;
 
+    [Header("Summoning")]
+    [SerializeField] private bool isSummoner = false;
+    [SerializeField] private bool isSummon = false;
+    [SerializeField] private GameObject summonPrefab;
+    [SerializeField] private float summonCooldown = 1f;
+    [SerializeField] private float summonDistance = 1.25f;
+    [SerializeField] private List<Sprite> summonSprites = new();
+    [SerializeField] private int maxSummonsOnScene = 10;
     private Rigidbody2D rb;
     private Vector2 movement;
     private Vector2 aimDirection = Vector2.left;
@@ -51,6 +61,10 @@ public class Enemy : MonoBehaviour
     private bool walkFrameToggle;
     private bool isFacingLeft = true;
     private float shootTimer;
+    private float summonTimer;
+
+    public bool IsSummon => isSummon;
+    public bool IsSummoner => isSummoner;
 
     private void Awake()
     {
@@ -66,12 +80,25 @@ public class Enemy : MonoBehaviour
         if (weaponTransform == null)
             Debug.LogError("Weapon Transform is not assigned!", this);
 
-     
-
         if (bulletPrefab == null)
             Debug.LogError("Bullet Prefab is not assigned!", this);
-    }
 
+        summonTimer = summonCooldown;
+        
+        ApplySummonSpriteIfNeeded();
+    }
+    private void ApplySummonSpriteIfNeeded()
+    {
+        if (!isSummon || spriteRenderer == null || summonSprites == null || summonSprites.Count == 0)
+            return;
+
+        Sprite randomSprite = summonSprites[Random.Range(0, summonSprites.Count)];
+
+        idleSprite = randomSprite;
+        walkSprite1 = randomSprite;
+        walkSprite2 = randomSprite;
+        spriteRenderer.sprite = randomSprite;
+    }
     private void Update()
     {
         if (player == null)
@@ -83,6 +110,7 @@ public class Enemy : MonoBehaviour
         HandleWeaponAim();
         HandleShootCooldown();
         HandleShooting();
+        HandleSummoning();
     }
 
     private void FixedUpdate()
@@ -174,6 +202,7 @@ public class Enemy : MonoBehaviour
         if (spriteRenderer != null)
             spriteRenderer.flipX = !faceLeft;
     }
+
     private void HandleWalkAnimation()
     {
         if (spriteRenderer == null)
@@ -247,5 +276,64 @@ public class Enemy : MonoBehaviour
         Rigidbody2D bulletRb = bullet.GetComponent<Rigidbody2D>();
         if (bulletRb != null)
             bulletRb.velocity = aimDirection * bulletSpeed;
+    }
+
+    private void HandleSummoning()
+    {
+        if (!isSummoner || summonPrefab == null)
+            return;
+
+        if (GetActiveSummonsCount() >= maxSummonsOnScene)
+            return;
+
+        summonTimer -= Time.deltaTime;
+
+        if (summonTimer > 0f)
+            return;
+
+        summonTimer = summonCooldown;
+        Summon();
+    }
+    private int GetActiveSummonsCount()
+    {
+        Enemy[] allEnemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+
+        int count = 0;
+
+        foreach (Enemy enemy in allEnemies)
+        {
+            if (enemy != null && enemy.IsSummon)
+                count++;
+        }
+
+        return count;
+    }
+    private void Summon()
+    {
+        Vector2 direction = aimDirection.sqrMagnitude > 0.001f
+            ? aimDirection.normalized
+            : Random.insideUnitCircle.normalized;
+
+        if (direction.sqrMagnitude <= 0.001f)
+            direction = Vector2.right;
+
+        Vector3 spawnPosition = transform.position + (Vector3)(direction * summonDistance);
+
+        GameObject summonObj = Instantiate(summonPrefab, spawnPosition, Quaternion.identity);
+
+        Enemy summonEnemy = summonObj.GetComponent<Enemy>();
+        if (summonEnemy != null)
+            summonEnemy.SetAsSummon();
+
+        Health summonHealth = summonObj.GetComponent<Health>();
+        if (summonHealth != null)
+            summonHealth.FullHeal();
+    }
+
+    public void SetAsSummon()
+    {
+        isSummon = true;
+        isSummoner = false;
+        ApplySummonSpriteIfNeeded();
     }
 }

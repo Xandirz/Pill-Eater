@@ -214,19 +214,20 @@ public class Player : MonoBehaviour
             $"HP: {(health != null ? $"{health.CurrentHealth}/{health.MaxHealth}" : "-")}\n" +
             $"Move Speed: {moveSpeed:0.##}\n" +
             $"Fire Rate: {(weaponController != null ? weaponController.ShotsPerSecond.ToString("0.##") : "-")}/sec\n" +
-            $"Damage: {(weaponController != null ? weaponController.Damage.ToString() : "-")}\n" +
-            $"Bullet Speed: {(weaponController != null ? weaponController.BulletSpeed.ToString("0.##") : "-")}";
+            $"Damage: {(weaponController != null ? weaponController.Damage.ToString() : "-")}";
 
         string secondColumnText =
+            $"Bullet Speed: {(weaponController != null ? weaponController.BulletSpeed.ToString("0.##") : "-")}\n" +
+            $"Projectiles: {(weaponController != null ? weaponController.ProjectilesPerShot.ToString() : "-")}\n" +
             $"Recoil: {(weaponController != null ? weaponController.RecoilForce.ToString("0.##") : "-")}\n" +
-            $"Size: {playerSize:0.##}\n" +
-            $"Poisonous: {(weaponController != null ? weaponController.Poisonous.ToString() : "-")}\n" +
+            $"Poisonous: {(weaponController != null ? weaponController.Poisonous.ToString() : "-")}";
+
+        string thirdColumnText =
+            $"Player Size: {playerSize:0.##}\n" +
+            $"Bullet Size: {(weaponController != null ? weaponController.BulletSize.ToString("0.##") : "-")}\n" +
             $"Explosion: {(weaponController != null ? weaponController.ExplosionChance.ToString() : "-")}%\n" +
             $"Homing: {(weaponController != null ? weaponController.HomingChance.ToString() : "-")}%";
 
-        string thirdColumnText =
-            $"Bullet Size: {(weaponController != null ? weaponController.BulletSize.ToString("0.##") : "-")}";
-        
         if (statsText != null && lastStatsText != firstColumnText)
         {
             statsText.text = firstColumnText;

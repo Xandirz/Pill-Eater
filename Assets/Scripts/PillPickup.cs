@@ -198,7 +198,7 @@ public class PillPickup : MonoBehaviour
                 if (positive)
                     return true;
 
-                return weapon.Damage > 1;
+                return weapon.Damage > 2;
             }
 
             case EffectType.MoveSpeed:
@@ -233,7 +233,7 @@ public class PillPickup : MonoBehaviour
             case EffectType.PlayerSize:
             {
                 if (positive)
-                    return player.PlayerSize < 4f;
+                    return player.PlayerSize < 3f;
 
                 return player.PlayerSize > 0.25f;
             }
@@ -243,7 +243,7 @@ public class PillPickup : MonoBehaviour
                 if (positive)
                     return true;
 
-                return weapon.Poisonous > 0;
+                return weapon.Poisonous > 1;
             }
 
             case EffectType.ProjectilesPerShot:
@@ -257,7 +257,7 @@ public class PillPickup : MonoBehaviour
             case EffectType.ExplosionChance:
             {
                 if (positive)
-                    return weapon.ExplosionChance < 100;
+                    return weapon.ExplosionChance < 50;
 
                 return weapon.ExplosionChance > 0;
             }
@@ -265,7 +265,7 @@ public class PillPickup : MonoBehaviour
             case EffectType.HomingChance:
             {
                 if (positive)
-                    return weapon.HomingChance < 100;
+                    return weapon.HomingChance < 50;
 
                 return weapon.HomingChance > 0;
             }
@@ -282,7 +282,7 @@ public class PillPickup : MonoBehaviour
                 if (positive)
                     return health.MaxHealth < 100;
 
-                return health.MaxHealth > 20;
+                return health.MaxHealth > 50;
             }
         }
 

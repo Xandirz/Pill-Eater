@@ -55,6 +55,8 @@ public class Bullet : MonoBehaviour
 
         UpdateBulletColor();
     }
+    
+
 
     private void Awake()
     {
@@ -196,6 +198,11 @@ public class Bullet : MonoBehaviour
                 DealDamage(other);
                 Destroy(gameObject);
             }
+        }
+        
+        if (other.CompareTag("Wall"))
+        {
+            Destroy(gameObject);
         }
     }
 

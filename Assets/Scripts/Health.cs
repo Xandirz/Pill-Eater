@@ -68,7 +68,11 @@ public class Health : MonoBehaviour
     public void AddMaxHealth(int amount)
     {
         maxHealth += amount;
-        maxHealth = Mathf.Clamp(maxHealth, 20, 100);
+
+        if (isPlayer)
+            maxHealth = Mathf.Clamp(maxHealth, 20, 100);
+        else
+            maxHealth = Mathf.Max(1, maxHealth);
 
         if (currentHealth > maxHealth)
             currentHealth = maxHealth;
@@ -80,11 +84,15 @@ public class Health : MonoBehaviour
     {
         currentHealth = maxHealth;
 
-        MessagePopUp.Create(
-            transform.position + Vector3.up * popupHeightOffset,
-            "Full Heal",
-            MessagePopUp.Style.Info
-        );
+        if (isPlayer)
+        {
+            MessagePopUp.Create(
+                transform.position + Vector3.up * popupHeightOffset,
+                "Full Heal",
+                MessagePopUp.Style.Info
+            );
+        }
+    
 
         if (!isPlayer)
             UpdateHealthBar();
@@ -230,9 +238,12 @@ public class Health : MonoBehaviour
 
         TrySpawnExplosionBullets();
 
-        if (PillManager.Instance != null)
-            PillManager.Instance.SpawnRandomPill(transform.position);
+        Enemy enemy = GetComponent<Enemy>();
+        bool shouldDropPill = enemy == null || !enemy.IsSummon;
 
+        if (shouldDropPill && PillManager.Instance != null)
+            PillManager.Instance.SpawnRandomPill(transform.position);
+        
         Destroy(gameObject);
     }
 

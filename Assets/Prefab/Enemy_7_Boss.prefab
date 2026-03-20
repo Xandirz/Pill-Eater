@@ -241,6 +241,13 @@ MonoBehaviour:
   shootCooldown: 1
   shootRange: 7
   damage: 1
+  isSummoner: 1
+  isSummon: 0
+  summonPrefab: {fileID: 3192603784554017534, guid: 9b2248297f835fe488b8df1e2eee8087, type: 3}
+  summonCooldown: 1
+  summonDistance: 3
+  summonSprites: []
+  maxSummonsOnScene: 10
 --- !u!61 &6984981486120872733
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -399,8 +406,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.161, y: 1.084}
-  m_SizeDelta: {x: 0.8413, y: 0.7187}
+  m_AnchoredPosition: {x: 0.3156, y: 1.48}
+  m_SizeDelta: {x: 5.18, y: 0.7187}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!23 &183283124406653418
 MeshRenderer:
@@ -464,7 +471,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 
+  m_text: 999999999
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 83f6f933902f2d24eaf4d0a6f8507178, type: 2}
   m_sharedMaterial: {fileID: 737112941488151596, guid: 83f6f933902f2d24eaf4d0a6f8507178, type: 2}
@@ -491,8 +498,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 5
-  m_fontSizeBase: 5
+  m_fontSize: 8
+  m_fontSizeBase: 8
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18

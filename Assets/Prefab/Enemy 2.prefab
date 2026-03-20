@@ -273,6 +273,13 @@ MonoBehaviour:
   shootCooldown: 1
   shootRange: 10
   damage: 1
+  isSummoner: 0
+  isSummon: 0
+  summonPrefab: {fileID: 0}
+  summonCooldown: 1
+  summonDistance: 1.25
+  summonSprites: []
+  maxSummonsOnScene: 10
 --- !u!61 &6984981486120872733
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -399,8 +406,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.161, y: 1.084}
-  m_SizeDelta: {x: 0.8413, y: 0.7187}
+  m_AnchoredPosition: {x: 0.2062, y: 1.084}
+  m_SizeDelta: {x: 2.9349, y: 0.7187}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!23 &183283124406653418
 MeshRenderer:

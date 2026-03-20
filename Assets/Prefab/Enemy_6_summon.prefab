@@ -241,6 +241,17 @@ MonoBehaviour:
   shootCooldown: 1
   shootRange: 7
   damage: 1
+  isSummoner: 0
+  isSummon: 0
+  summonPrefab: {fileID: 0}
+  summonCooldown: 1
+  summonDistance: 1.25
+  summonSprites:
+  - {fileID: 21300000, guid: 469a41ad86207064c84a4be0d4bc3f99, type: 3}
+  - {fileID: 21300000, guid: cdba80f7d859d8f498a94e305a500fd1, type: 3}
+  - {fileID: 21300000, guid: b64e2b0a43c3a4e408a4cae1f857a02c, type: 3}
+  - {fileID: 21300000, guid: 5c8ab062811356f4d85791ad9091143d, type: 3}
+  - {fileID: 21300000, guid: f1c836356c1f2ad40b4ee5c36445004d, type: 3}
 --- !u!61 &6984981486120872733
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -325,7 +336,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 878ddf9f2e0f7b64f84b334cb2c10ebb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 3
+  maxHealth: 1
   isPlayer: 0
   popupHeightOffset: 0
   gameOverScreen: {fileID: 0}

@@ -10,6 +10,7 @@ public class WeaponController : MonoBehaviour
     [Header("Position")]
     [SerializeField] private float distanceFromPlayer = 0.75f;
 
+    public Health PlayerHealth;
     [Header("Shooting")]
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private float bulletSpeed = 12f;
@@ -114,6 +115,10 @@ public class WeaponController : MonoBehaviour
 
     private void Shoot()
     {
+        if (PlayerHealth.currentHealth <= 0)
+        {
+            return;
+        }
         if (bulletPrefab == null || firePoint == null)
             return;
 
